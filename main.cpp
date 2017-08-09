@@ -30,6 +30,9 @@
 #include <stdio.h>
 #include "hal_thread.h"
 #include "sv_subscriber.h"
+#include "vector"
+
+using namespace std;
 
 
 enum {INT_, FLOAT_};
@@ -47,13 +50,12 @@ static int win_width, win_height;
 static SDL_Window *win;
 static SVReceiver receiver;
 struct nk_context *ctx;
-static sv_channel channels[16];
-int channel_counter = 0;
+static vector<sv_channel> channels;
 
 static void cleanup();
 
 int fingChannelByName(const char* name){
-  for(int i = 0; i < channel_counter;i++){
+  for(int i = 0; i < channels.size();i++){
     if(strcmp(name,channels[i].name) == 0)
       return i;
   }
@@ -66,20 +68,20 @@ void sigint_handler(int signalId) {
 
 float getSVFloat(SVClientASDU asdu){
   if (SVClientASDU_getDataSize(asdu) >= 0) {
-      float st = SVClientASDU_getFLOAT32(asdu, 0);
-      printf("%d\n", st );
-      return st;
+      return SVClientASDU_getFLOAT32(asdu, 0);
   }
   return 0;
 }
 
 int getSVInt(SVClientASDU asdu){
   if (SVClientASDU_getDataSize(asdu) >= 0) {
-      int st =  SVClientASDU_getINT32(asdu, 0);
-      printf("%d\n", st );
-      return st;
+      return SVClientASDU_getINT32(asdu, 0);
   }
   return 0;
+}
+
+void refreshe(){
+  channels.clear();
 }
 
 
@@ -96,8 +98,7 @@ static void svUpdateListener (SVSubscriber subscriber, void* parameter, SVClient
     newChannel.name = svID;
     newChannel.float_value = getSVFloat(asdu);
     newChannel.dataType = FLOAT_;
-    channels[channel_counter] = newChannel;
-    channel_counter++;
+    channels.push_back(newChannel);
   } else {
     if(channels[channelIndex].dataType == FLOAT_){
       channels[channelIndex].float_value = getSVFloat(asdu);
@@ -202,24 +203,25 @@ int main(int argc, char** argv) {
 
         static int op = FLOAT_;
         nk_layout_row_static(ctx, 30, 80, 1);
-        if (nk_button_label(ctx, "REFRESH"))
-          fprintf(stdout, "refreshed\n");
+        if (nk_button_label(ctx, "REFRESH")) refreshe();
 
-        for(int i = 0; i < channel_counter;i++){
-          nk_layout_row_dynamic(ctx, 30, 12);
-          if (nk_option_label(ctx, "float", op == FLOAT_)) op = FLOAT_;
-          if (nk_option_label(ctx, "int", op == INT_)) op = INT_;
-          nk_layout_row_dynamic(ctx, 30, 1);
-          if(channels[i].dataType == FLOAT_){
-            nk_property_float(ctx, channels[i].name, 0, &channels[i].float_value,channels[i].float_value , 10, 1);
-          }
-          else {
-            nk_property_int(ctx, channels[i].name, 0, &channels[i].int_value,channels[i].int_value, 10, 1);
-          }
+        for(int i = 0; i < channels.size();i++){
+        int op = channels[i].dataType;
+        nk_layout_row_dynamic(ctx, 30, 12);
+        if (nk_option_label(ctx, "float", op == FLOAT_)) op = FLOAT_;
+        if (nk_option_label(ctx, "int", op == INT_)) op = INT_;
+        channels[i].dataType = op;
+        nk_layout_row_dynamic(ctx, 30, 1);
+        if(channels[i].dataType == FLOAT_){
+          nk_property_float(ctx, channels[i].name, 0, &channels[i].float_value,channels[i].float_value , 10, 1);
         }
-
+        else {
+          nk_property_int(ctx, channels[i].name, 0, &channels[i].int_value,channels[i].int_value, 10, 1);
+        }
       }
-      nk_end(ctx);
+
+    }
+    nk_end(ctx);
 
       /* Draw */
       {float bg[4];
