@@ -1,7 +1,6 @@
 /*
-* sv_subscriber_example.c
 *
-* Example program for Sampled Values (SV) subscriber
+*  Sample Values Client
 *
 */
 #include <GL/glew.h>
@@ -31,12 +30,15 @@
 #include "hal_thread.h"
 #include "sv_subscriber.h"
 #include "vector"
+#include <iostream>
+#include <string>
 
 using namespace std;
 
 
 enum {INT_, FLOAT_};
 
+// Struct that hold info abous sample value channels
 struct sv_channel {
   const char* name;
   int int_value;
@@ -44,6 +46,10 @@ struct sv_channel {
   int dataType;
 };
 
+
+////////////////////////////////
+//// Variables declaration ////
+//////////////////////////////
 static bool running = true;
 struct nk_color background;
 static int win_width, win_height;
@@ -52,6 +58,10 @@ static SVReceiver receiver;
 struct nk_context *ctx;
 static vector<sv_channel> channels;
 
+
+////////////////////////////////
+//// Functions declaration ////
+//////////////////////////////
 static void cleanup();
 static void sv_client_init();
 static int fingChannelByName(const char* name);
@@ -122,6 +132,11 @@ int main(int argc, char** argv) {
     running = false;
   }
 
+
+  /*
+   * Search the vector channels for a channel with name.
+   * Return its index if channel is found, -1 otherwise.
+  */
   static int fingChannelByName(const char* name){
     for(int i = 0; i < channels.size();i++){
       if(strcmp(name,channels[i].name) == 0)
@@ -134,6 +149,9 @@ int main(int argc, char** argv) {
     running = 0;
   }
 
+  /*
+   * Read and return float from ethernet.
+  */
   static float getSVFloat(SVClientASDU asdu){
     if (SVClientASDU_getDataSize(asdu) >= 0) {
       return SVClientASDU_getFLOAT32(asdu, 0);
@@ -141,6 +159,9 @@ int main(int argc, char** argv) {
     return 0;
   }
 
+  /*
+   * Read and return int from ethernet.
+  */
   static int getSVInt(SVClientASDU asdu){
     if (SVClientASDU_getDataSize(asdu) >= 0) {
       return SVClientASDU_getINT32(asdu, 0);
@@ -154,7 +175,8 @@ int main(int argc, char** argv) {
 
     const char* svID = SVClientASDU_getSvId(asdu);
     if (svID != NULL)
-    printf("  svID=(%s)\n", svID);
+    cout<<svID<<endl;
+
     int channelIndex = fingChannelByName(svID);
     if(channelIndex == -1){
       sv_channel newChannel;
@@ -169,6 +191,9 @@ int main(int argc, char** argv) {
     }
   }
 
+  /*
+   * Initilize gui window.
+  */
   static void gui_init(){
     /* Platform */
     SDL_GLContext glContext;
@@ -203,6 +228,9 @@ int main(int argc, char** argv) {
     nk_sdl_font_stash_end();
   }
 
+  /*
+   * Initilize sample value client that listens on ethernet interface "enp0s3"
+  */
   static void sv_client_init(){
     // SV client
     receiver = SVReceiver_create();
