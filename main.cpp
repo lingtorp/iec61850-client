@@ -33,6 +33,7 @@
 
 
 enum {INT_, FLOAT_};
+
 struct sv_channel {
   const char* name;
   int int_value;
@@ -64,18 +65,23 @@ void sigint_handler(int signalId) {
 }
 
 float getSVFloat(SVClientASDU asdu){
-  if (SVClientASDU_getDataSize(asdu) >= 8) {
-      return SVClientASDU_getFLOAT32(asdu, 0);
+  if (SVClientASDU_getDataSize(asdu) >= 0) {
+      float st = SVClientASDU_getFLOAT32(asdu, 0);
+      printf("%d\n", st );
+      return st;
   }
   return 0;
 }
 
 int getSVInt(SVClientASDU asdu){
-  if (SVClientASDU_getDataSize(asdu) >= 8) {
-      return SVClientASDU_getINT32(asdu, 0);
+  if (SVClientASDU_getDataSize(asdu) >= 0) {
+      int st =  SVClientASDU_getINT32(asdu, 0);
+      printf("%d\n", st );
+      return st;
   }
   return 0;
 }
+
 
 /* Callback handler for received SV messages */
 static void svUpdateListener (SVSubscriber subscriber, void* parameter, SVClientASDU asdu) {
@@ -84,10 +90,6 @@ static void svUpdateListener (SVSubscriber subscriber, void* parameter, SVClient
   const char* svID = SVClientASDU_getSvId(asdu);
   if (svID != NULL)
     printf("  svID=(%s)\n", svID);
-
-  printf("  smpCnt: %i\n", getSVFloat(asdu));
-
-  /*
   int channelIndex = fingChannelByName(svID);
   if(channelIndex == -1){
     sv_channel newChannel;
@@ -100,7 +102,7 @@ static void svUpdateListener (SVSubscriber subscriber, void* parameter, SVClient
     if(channels[channelIndex].dataType == FLOAT_){
       channels[channelIndex].float_value = getSVFloat(asdu);
     } else channels[channelIndex].int_value = getSVInt(asdu);
-  } */
+  }
 }
 
 static void gui_init(){
@@ -162,7 +164,6 @@ static void sv_client_init(){
 int main(int argc, char** argv) {
     gui_init();
     sv_client_init();
-
     while(running) {
       /* Input */
       SDL_Event evt;
@@ -199,17 +200,22 @@ int main(int argc, char** argv) {
         nk_menubar_end(ctx);
 
 
-        static int op = INT_;
+        static int op = FLOAT_;
         nk_layout_row_static(ctx, 30, 80, 1);
         if (nk_button_label(ctx, "REFRESH"))
           fprintf(stdout, "refreshed\n");
-        nk_layout_row_dynamic(ctx, 30, 2);
-        if (nk_option_label(ctx, "int", op == INT_)) op = INT_;
-        if (nk_option_label(ctx, "float", op == FLOAT_)) op = FLOAT_;
-        nk_layout_row_dynamic(ctx, 25, 1);
-        float test = 10;
+
         for(int i = 0; i < channel_counter;i++){
-          nk_property_int(ctx, channels[i], 0, &test, 100, 10, 1);
+          nk_layout_row_dynamic(ctx, 30, 12);
+          if (nk_option_label(ctx, "float", op == FLOAT_)) op = FLOAT_;
+          if (nk_option_label(ctx, "int", op == INT_)) op = INT_;
+          nk_layout_row_dynamic(ctx, 30, 1);
+          if(channels[i].dataType == FLOAT_){
+            nk_property_float(ctx, channels[i].name, 0, &channels[i].float_value,channels[i].float_value , 10, 1);
+          }
+          else {
+            nk_property_int(ctx, channels[i].name, 0, &channels[i].int_value,channels[i].int_value, 10, 1);
+          }
         }
 
       }
