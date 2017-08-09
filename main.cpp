@@ -32,6 +32,15 @@
 #include "sv_subscriber.h"
 
 static bool running = true;
+struct nk_color background;
+static int win_width, win_height;
+static SDL_Window *win;
+static SVReceiver receiver;
+struct nk_context *ctx;
+
+enum {INT_, FLOAT_};
+
+static void cleanup();
 
 void sigint_handler(int signalId) {
   running = 0;
@@ -60,12 +69,12 @@ static void svUpdateListener (SVSubscriber subscriber, void* parameter, SVClient
      * To prevent damages due configuration, please check the length of the
      * data block of the SV message before accessing the data.
      */
-  if(strcmp(svID, "sv_channel_1") == 0){
+
     if (SVClientASDU_getDataSize(asdu) >= 8) {
       printf("   DATA[0]: %f\n", SVClientASDU_getFLOAT32(asdu, 0));
       printf("   DATA[1]: %f\n", SVClientASDU_getFLOAT32(asdu, 4));
     }
-  } else if (strcmp(svID, "sv_channel_2") == 0) {
+   else if (strcmp(svID, "sv_channel_2") == 0) {
     if (SVClientASDU_getDataSize(asdu) >= 8) {
       printf("   DATA[0]: %i\n", SVClientASDU_getINT32(asdu, 0));
       printf("   DATA[1]: %i\n", SVClientASDU_getINT32(asdu, 4));
@@ -73,77 +82,74 @@ static void svUpdateListener (SVSubscriber subscriber, void* parameter, SVClient
   }
 }
 
+static void gui_init(){
+  /* Platform */
+SDL_GLContext glContext;
+
+
+  /* SDL setup */
+SDL_SetHint(SDL_HINT_VIDEO_HIGHDPI_DISABLED, "0");
+SDL_Init(SDL_INIT_VIDEO|SDL_INIT_TIMER|SDL_INIT_EVENTS);
+SDL_GL_SetAttribute (SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_FORWARD_COMPATIBLE_FLAG);
+SDL_GL_SetAttribute (SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
+SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
+SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
+SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
+win = SDL_CreateWindow("Samle Values",
+  SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
+  WINDOW_WIDTH, WINDOW_HEIGHT, SDL_WINDOW_OPENGL|SDL_WINDOW_SHOWN|SDL_WINDOW_ALLOW_HIGHDPI);
+glContext = SDL_GL_CreateContext(win);
+SDL_GetWindowSize(win, &win_width, &win_height);
+
+  /* OpenGL setup */
+glViewport(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT);
+glewExperimental = 1;
+if (glewInit() != GLEW_OK) {
+  fprintf(stderr, "Failed to setup GLEW\n");
+  exit(1);
+}
+
+ctx = nk_sdl_init(win);
+
+  /* Load Fonts: if none of these are loaded a default font will be used */
+struct nk_font_atlas *atlas;
+nk_sdl_font_stash_begin(&atlas);
+  struct nk_font *roboto = nk_font_atlas_add_from_file(atlas, "../Roboto-Regular.ttf", 16, 0); // Can be safely removed
+  nk_sdl_font_stash_end();
+}
+
+static void sv_client_init(){
+  // SV client
+      receiver = SVReceiver_create();
+
+      printf("Using interface ens33 ");
+      SVReceiver_setInterfaceId(receiver, "ens33");
+
+  /* Create a subscriber listening to SV messages with APPID 4000h */
+      SVSubscriber subscriber = SVSubscriber_create(NULL, 0x4000);
+
+  /* Install a callback handler for the subscriber */
+      SVSubscriber_setListener(subscriber, svUpdateListener, NULL);
+
+  /* Connect the subscriber to the receiver */
+      SVReceiver_addSubscriber(receiver, subscriber);
+
+  /* Start listening to SV messages - starts a new receiver background thread */
+      SVReceiver_start(receiver);
+
+      signal(SIGINT, sigint_handler);
+}
+
 int main(int argc, char** argv) {
-    /* Platform */
-  SDL_Window *win;
-  SDL_GLContext glContext;
-  struct nk_color background;
-  int win_width, win_height;
-
-    /* GUI */
-  struct nk_context *ctx;
-
-    /* SDL setup */
-  SDL_SetHint(SDL_HINT_VIDEO_HIGHDPI_DISABLED, "0");
-  SDL_Init(SDL_INIT_VIDEO|SDL_INIT_TIMER|SDL_INIT_EVENTS);
-  SDL_GL_SetAttribute (SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_FORWARD_COMPATIBLE_FLAG);
-  SDL_GL_SetAttribute (SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
-  SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
-  SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
-  SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
-  win = SDL_CreateWindow("Samle Values",
-    SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
-    WINDOW_WIDTH, WINDOW_HEIGHT, SDL_WINDOW_OPENGL|SDL_WINDOW_SHOWN|SDL_WINDOW_ALLOW_HIGHDPI);
-  glContext = SDL_GL_CreateContext(win);
-  SDL_GetWindowSize(win, &win_width, &win_height);
-
-    /* OpenGL setup */
-  glViewport(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT);
-  glewExperimental = 1;
-  if (glewInit() != GLEW_OK) {
-    fprintf(stderr, "Failed to setup GLEW\n");
-    exit(1);
-  }
-
-  ctx = nk_sdl_init(win);
-
-    /* Load Fonts: if none of these are loaded a default font will be used */
-  struct nk_font_atlas *atlas;
-  nk_sdl_font_stash_begin(&atlas);
-    struct nk_font *roboto = nk_font_atlas_add_from_file(atlas, "../Roboto-Regular.ttf", 16, 0); // Can be safely removed
-    nk_sdl_font_stash_end();
-    // SV client
-        SVReceiver receiver = SVReceiver_create();
-
-        if (argc > 1) {
-          SVReceiver_setInterfaceId(receiver, argv[1]);
-          printf("Set interface id: %s\n", argv[1]);
-        }
-        else {
-          printf("Using interface ens33 ");
-          SVReceiver_setInterfaceId(receiver, "ens33");
-        }
-
-    /* Create a subscriber listening to SV messages with APPID 4000h */
-        SVSubscriber subscriber = SVSubscriber_create(NULL, 0x4000);
-
-    /* Install a callback handler for the subscriber */
-        SVSubscriber_setListener(subscriber, svUpdateListener, NULL);
-
-    /* Connect the subscriber to the receiver */
-        SVReceiver_addSubscriber(receiver, subscriber);
-
-    /* Start listening to SV messages - starts a new receiver background thread */
-        SVReceiver_start(receiver);
-
-        signal(SIGINT, sigint_handler);
+    gui_init();
+    sv_client_init();
 
     while(running) {
       /* Input */
       SDL_Event evt;
       nk_input_begin(ctx);
       while (SDL_PollEvent(&evt)) {
-        if (evt.type == SDL_QUIT) goto cleanup;
+        if (evt.type == SDL_QUIT) cleanup();
         nk_sdl_handle_event(&evt);
       }
       nk_input_end(ctx);
@@ -173,17 +179,16 @@ int main(int argc, char** argv) {
         nk_layout_row_end(ctx);
         nk_menubar_end(ctx);
 
-        enum {EASY, HARD};
-        static int op = EASY;
-        static int property = 20;
+
+        static int op = INT_;
         nk_layout_row_static(ctx, 30, 80, 1);
-        if (nk_button_label(ctx, "button"))
-          fprintf(stdout, "button pressed\n");
+        if (nk_button_label(ctx, "REFRESH"))
+          fprintf(stdout, "refreshed\n");
         nk_layout_row_dynamic(ctx, 30, 2);
-        if (nk_option_label(ctx, "easy", op == EASY)) op = EASY;
-        if (nk_option_label(ctx, "hard", op == HARD)) op = HARD;
+        if (nk_option_label(ctx, "int", op == INT_)) op = INT_;
+        if (nk_option_label(ctx, "float", op == FLOAT_)) op = FLOAT_;
         nk_layout_row_dynamic(ctx, 25, 1);
-        nk_property_int(ctx, "Compression:", 0, &property, 100, 10, 1);
+        //nk_property_int(ctx, "Compression:", 0, &property, 100, 10, 1);
       }
       nk_end(ctx);
 
@@ -203,12 +208,15 @@ int main(int argc, char** argv) {
 
         SDL_GL_SwapWindow(win);
       }
-
-cleanup:
-    /* Stop listening to SV messages */
-        SVReceiver_stop(receiver);
-
-    /* Cleanup and free resources */
-        SVReceiver_destroy(receiver);
       return 0;
+    }
+
+    static void cleanup(){
+      /* Stop listening to SV messages */
+          SVReceiver_stop(receiver);
+
+      /* Cleanup and free resources */
+          SVReceiver_destroy(receiver);
+
+          running = false;
     }
