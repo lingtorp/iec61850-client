@@ -31,62 +31,81 @@
 #include "hal_thread.h"
 #include "sv_subscriber.h"
 
+
+enum {INT_, FLOAT_};
+struct sv_channel {
+  const char* name;
+  int int_value;
+  float float_value;
+  int dataType;
+};
+
 static bool running = true;
 struct nk_color background;
 static int win_width, win_height;
 static SDL_Window *win;
 static SVReceiver receiver;
 struct nk_context *ctx;
-
-enum {INT_, FLOAT_};
+static sv_channel channels[16];
+int channel_counter = 0;
 
 static void cleanup();
+
+int fingChannelByName(const char* name){
+  for(int i = 0; i < channel_counter;i++){
+    if(strcmp(name,channels[i].name) == 0)
+      return i;
+  }
+  return -1;
+}
 
 void sigint_handler(int signalId) {
   running = 0;
 }
 
-/* Callback handler for received SV messages */
+float getSVFloat(SVClientASDU asdu){
+  if (SVClientASDU_getDataSize(asdu) >= 8) {
+      return SVClientASDU_getFLOAT32(asdu, 0);
+  }
+  return 0;
+}
 
+int getSVInt(SVClientASDU asdu){
+  if (SVClientASDU_getDataSize(asdu) >= 8) {
+      return SVClientASDU_getINT32(asdu, 0);
+  }
+  return 0;
+}
+
+/* Callback handler for received SV messages */
 static void svUpdateListener (SVSubscriber subscriber, void* parameter, SVClientASDU asdu) {
   printf("svUpdateListener called\n");
 
   const char* svID = SVClientASDU_getSvId(asdu);
-
   if (svID != NULL)
     printf("  svID=(%s)\n", svID);
 
-  printf("  smpCnt: %i\n", SVClientASDU_getSmpCnt(asdu));
-  printf("  confRev: %u\n", SVClientASDU_getConfRev(asdu));
+  printf("  smpCnt: %i\n", getSVFloat(asdu));
 
-    /*
-     * Access to the data requires a priori knowledge of the data set.
-     * For this example we assume a data set consisting of FLOAT32 values.
-     * A FLOAT32 value is encoded as 4 bytes. You can find the first FLOAT32
-     * value at byte position 0, the second value at byte position 4, the third
-     * value at byte position 8, and so on.
-     *
-     * To prevent damages due configuration, please check the length of the
-     * data block of the SV message before accessing the data.
-     */
-
-    if (SVClientASDU_getDataSize(asdu) >= 8) {
-      printf("   DATA[0]: %f\n", SVClientASDU_getFLOAT32(asdu, 0));
-      printf("   DATA[1]: %f\n", SVClientASDU_getFLOAT32(asdu, 4));
-    }
-   else if (strcmp(svID, "sv_channel_2") == 0) {
-    if (SVClientASDU_getDataSize(asdu) >= 8) {
-      printf("   DATA[0]: %i\n", SVClientASDU_getINT32(asdu, 0));
-      printf("   DATA[1]: %i\n", SVClientASDU_getINT32(asdu, 4));
-    }
-  }
+  /*
+  int channelIndex = fingChannelByName(svID);
+  if(channelIndex == -1){
+    sv_channel newChannel;
+    newChannel.name = svID;
+    newChannel.float_value = getSVFloat(asdu);
+    newChannel.dataType = FLOAT_;
+    channels[channel_counter] = newChannel;
+    channel_counter++;
+  } else {
+    if(channels[channelIndex].dataType == FLOAT_){
+      channels[channelIndex].float_value = getSVFloat(asdu);
+    } else channels[channelIndex].int_value = getSVInt(asdu);
+  } */
 }
 
 static void gui_init(){
   /* Platform */
 SDL_GLContext glContext;
-
-
   /* SDL setup */
 SDL_SetHint(SDL_HINT_VIDEO_HIGHDPI_DISABLED, "0");
 SDL_Init(SDL_INIT_VIDEO|SDL_INIT_TIMER|SDL_INIT_EVENTS);
@@ -122,8 +141,8 @@ static void sv_client_init(){
   // SV client
       receiver = SVReceiver_create();
 
-      printf("Using interface ens33 ");
-      SVReceiver_setInterfaceId(receiver, "ens33");
+      printf("Using interface enp0s3  ");
+      SVReceiver_setInterfaceId(receiver, "enp0s3");
 
   /* Create a subscriber listening to SV messages with APPID 4000h */
       SVSubscriber subscriber = SVSubscriber_create(NULL, 0x4000);
@@ -188,7 +207,11 @@ int main(int argc, char** argv) {
         if (nk_option_label(ctx, "int", op == INT_)) op = INT_;
         if (nk_option_label(ctx, "float", op == FLOAT_)) op = FLOAT_;
         nk_layout_row_dynamic(ctx, 25, 1);
-        //nk_property_int(ctx, "Compression:", 0, &property, 100, 10, 1);
+        float test = 10;
+        for(int i = 0; i < channel_counter;i++){
+          nk_property_int(ctx, channels[i], 0, &test, 100, 10, 1);
+        }
+
       }
       nk_end(ctx);
 
