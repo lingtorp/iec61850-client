@@ -101,13 +101,13 @@ int main(int argc, char** argv) {
         nk_layout_row_dynamic(ctx, 25, 1);
         nk_button_label(ctx,channels[i].name);
         if(channels[i].dataType == FLOAT_){
-          for(int i = 0; i < channels[i].float_values.size(); i++){
-            nk_property_float(ctx, "x", 0, &channels[i].float_values[i],channels[i].float_values[i] , 10, 1);
+          for(int j = 0; j < channels[i].float_values.size(); j++){
+            nk_property_float(ctx, "x", channels[i].float_values[j], &channels[i].float_values[j],channels[i].float_values[j], 10, 1);
           }
         }
         else {
-          for(int i = 0; i < channels[i].int_values.size(); i++){
-            nk_property_int(ctx, "x", 0, &channels[i].int_values[i],channels[i].int_values[i] , 10, 1);
+          for(int j = 0; j < channels[i].int_values.size(); j++){
+            nk_property_int(ctx, "x", channels[i].int_values[j], &channels[i].int_values[j],channels[i].int_values[j], 10, 1);
           }
         }
       }
@@ -158,20 +158,16 @@ int main(int argc, char** argv) {
   /*
    * Read and return float from ethernet.
   */
-  static float getSVFloat(SVClientASDU asdu){
-    if (SVClientASDU_getDataSize(asdu) >= 0) {
-      return SVClientASDU_getFLOAT32(asdu, 0);
-    }
+  static float getSVFloat(SVClientASDU asdu, int pos){
+      return SVClientASDU_getFLOAT32(asdu, pos);
     return 0;
   }
 
   /*
    * Read and return int from ethernet.
   */
-  static int getSVInt(SVClientASDU asdu){
-    if (SVClientASDU_getDataSize(asdu) >= 0) {
-      return SVClientASDU_getINT32(asdu, 0);
-    }
+  static int getSVInt(SVClientASDU asdu,int pos){
+      return SVClientASDU_getINT32(asdu, pos);
     return 0;
   }
 
@@ -189,18 +185,21 @@ int main(int argc, char** argv) {
       sv_channel newChannel;
       newChannel.name = svID;
       for(int i = 0; i < dataSize/4; i++){
-        newChannel.float_values.push_back(getSVFloat(asdu));
+        newChannel.float_values.push_back(getSVFloat(asdu, i*4));
       }
+      newChannel.int_values.reserve(dataSize/4);
       newChannel.dataType = FLOAT_;
       channels.push_back(newChannel);
     } else {
       if(channels[channelIndex].dataType == FLOAT_){
         for(int i = 0; i < dataSize/4; i++){
-          channels[channelIndex].float_values[i] = getSVFloat(asdu);
+          channels[channelIndex].float_values[i] = getSVFloat(asdu, i*4);
         }
       } else {
           for(int i = 0; i < dataSize/4; i++){
-            channels[channelIndex].int_values[i] = getSVInt(asdu);
+            if(channels[channelIndex].int_values.size() <= i)
+              channels[channelIndex].int_values.push_back(getSVInt(asdu, i*4));
+            else channels[channelIndex].int_values[i] = getSVInt(asdu, i*4);
           }
         }
       }
