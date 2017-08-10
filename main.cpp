@@ -44,6 +44,7 @@ struct sv_channel {
   vector<int> int_values;
   vector<float> float_values;
   int dataType;
+  bool visible;
 };
 
 
@@ -98,16 +99,22 @@ int main(int argc, char** argv) {
         if (nk_option_label(ctx, "float", op == FLOAT_)) op = FLOAT_;
         if (nk_option_label(ctx, "int", op == INT_)) op = INT_;
         channels[i].dataType = op;
+        bool visible = channels[i].visible;
         nk_layout_row_dynamic(ctx, 25, 1);
-        nk_button_label(ctx,channels[i].name);
-        if(channels[i].dataType == FLOAT_){
-          for(int j = 0; j < channels[i].float_values.size(); j++){
-            nk_property_float(ctx, "x", channels[i].float_values[j], &channels[i].float_values[j],channels[i].float_values[j], 10, 1);
-          }
+        if(nk_button_label(ctx,channels[i].name)){
+          if(visible) channels[i].visible = false;
+          else channels[i].visible = true;
         }
-        else {
-          for(int j = 0; j < channels[i].int_values.size(); j++){
-            nk_property_int(ctx, "x", channels[i].int_values[j], &channels[i].int_values[j],channels[i].int_values[j], 10, 1);
+        if(channels[i].visible){
+          if(channels[i].dataType == FLOAT_){
+            for(int j = 0; j < channels[i].float_values.size(); j++){
+              nk_property_float(ctx, "Value", channels[i].float_values[j], &channels[i].float_values[j],channels[i].float_values[j], 10, 1);
+            }
+          }
+          else {
+            for(int j = 0; j < channels[i].int_values.size(); j++){
+              nk_property_int(ctx, "Value", channels[i].int_values[j], &channels[i].int_values[j],channels[i].int_values[j], 10, 1);
+            }
           }
         }
       }
@@ -189,6 +196,7 @@ int main(int argc, char** argv) {
       }
       newChannel.int_values.reserve(dataSize/4);
       newChannel.dataType = FLOAT_;
+      newChannel.visible = false;
       channels.push_back(newChannel);
     } else {
       if(channels[channelIndex].dataType == FLOAT_){
