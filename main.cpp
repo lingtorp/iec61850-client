@@ -59,6 +59,8 @@ static SDL_Window *win;
 static SVReceiver receiver;
 struct nk_context *ctx;
 static vector<sv_channel> channels;
+static bool advanced = false;
+static sv_channel * channel_advanced;
 
 
 ////////////////////////////////
@@ -71,7 +73,6 @@ static void sigint_handler(int signalId);
 static float getSVFloat(SVClientASDU asdu);
 static int getSVInt(SVClientASDU asdu);
 static void gui_init();
-
 
 
 int main(int argc, char** argv) {
@@ -89,6 +90,39 @@ int main(int argc, char** argv) {
 
     /* GUI */
     if (nk_begin(ctx, "Sample Values Client", nk_rect(0, 0, 800, 600),NK_WINDOW_BORDER|NK_WINDOW_SCALABLE|NK_WINDOW_TITLE)) {
+      if(advanced){
+        nk_layout_row_dynamic(ctx,10,1);
+        nk_label(ctx, "---------- ADVANCED ----------", NK_TEXT_CENTERED);
+        int op = channel_advanced->dataType;
+        nk_layout_row_dynamic(ctx, 30, 12);
+        if (nk_option_label(ctx, "float", op == FLOAT_)) op = FLOAT_;
+        if (nk_option_label(ctx, "int", op == INT_)) op = INT_;
+        channel_advanced->dataType = op;
+        nk_layout_row_dynamic(ctx, 25, 1);
+        nk_button_label(ctx,channel_advanced->name);
+        if(channel_advanced->dataType == FLOAT_){
+          for(int j = 0; j < channel_advanced->float_values.size(); j++){
+            string str = "Value ";
+            stringstream ss;
+            ss << j+1;
+            str += ss.str();
+            nk_property_float(ctx, str.c_str(), channel_advanced->float_values[j], &(channel_advanced->float_values[j]),channel_advanced->float_values[j], 10, 1);
+          }
+        }
+        else {
+          for(int j = 0; j < channel_advanced->int_values.size(); j++){
+            string str = "Value ";
+            stringstream ss;
+            ss << j+1;
+            str += ss.str();
+            nk_property_int(ctx, str.c_str(), channel_advanced->int_values[j], &(channel_advanced->int_values[j]),channel_advanced->int_values[j], 10, 1);
+          }
+        }
+        nk_layout_row_static(ctx, 30, 80, 1);
+        if(nk_button_label(ctx,"BACK")) {
+          advanced = false;
+        }
+      } else {
       nk_layout_row_dynamic(ctx,10,1);
       nk_label(ctx, "---------- CHANNELS ----------", NK_TEXT_CENTERED);
 
@@ -123,6 +157,11 @@ int main(int argc, char** argv) {
               nk_property_int(ctx, str.c_str(), channels[i].int_values[j], &channels[i].int_values[j],channels[i].int_values[j], 10, 1);
             }
           }
+          nk_layout_row_static(ctx, 30, 80, 1);
+          if(nk_button_label(ctx,"ADVANCED")) {
+            advanced = true;
+            channel_advanced = &channels[i];
+          }
         }
       }
       if(channels.size() > 0){
@@ -135,6 +174,7 @@ int main(int argc, char** argv) {
         nk_label(ctx, "Please check your connection", NK_TEXT_CENTERED);
       }
     }
+  }
     nk_end(ctx);
 
     /* Draw */
