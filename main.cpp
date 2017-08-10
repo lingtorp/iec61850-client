@@ -25,6 +25,8 @@
 #define MAX_VERTEX_MEMORY 512 * 1024
 #define MAX_ELEMENT_MEMORY 128 * 1024
 
+#define PLOT_SAMPLE_SIZE 100
+
 #include <signal.h>
 #include <stdio.h>
 #include "hal_thread.h"
@@ -61,7 +63,12 @@ static SVReceiver receiver;
 struct nk_context *ctx;
 static vector<sv_channel> channels;
 static bool advanced = false;
-static sv_channel * channel_advanced;
+static sv_channel *channel_advanced;
+
+// test
+static float plot_arr[PLOT_SAMPLE_SIZE];
+static int plot_count = 0;
+static bool plot_sampling = false;
 
 
 ////////////////////////////////
@@ -126,7 +133,9 @@ int main(int argc, char** argv) {
         nk_label(ctx,"",NK_TEXT_LEFT);
 
         nk_layout_row_static(ctx, 30, 80, channel_advanced->float_values.size() + 1);
-        nk_button_label(ctx,"PLOT");
+        if(nk_button_label(ctx,"PLOT")){
+            plot_sampling = true;
+        }
 
         for(int s = 0; s < channel_advanced->float_values.size();s++){
           string str = "Value ";
@@ -137,11 +146,7 @@ int main(int argc, char** argv) {
         }
 
         nk_layout_row_static(ctx,200, 800, 1);
-        float marko[1000];
-        for(int t = 0; t < 1000; t++){
-          marko[t] = sin(t/100.0);
-        }
-        nk_plot(ctx,NK_CHART_LINES,marko,1000,0.001);
+        nk_plot(ctx,NK_CHART_LINES,plot_arr,PLOT_SAMPLE_SIZE,0.1);
 
         nk_layout_row_dynamic(ctx,50,1);
         nk_label(ctx,"",NK_TEXT_LEFT);
@@ -250,7 +255,16 @@ int main(int argc, char** argv) {
    * Read and return float from ethernet.
   */
   static float getSVFloat(SVClientASDU asdu, int pos){
-      return SVClientASDU_getFLOAT32(asdu, pos);
+      float f = SVClientASDU_getFLOAT32(asdu, pos);
+      if(plot_sampling && pos == 0){
+        plot_arr[plot_count] = f;
+        plot_count++;
+        if(plot_count >= PLOT_SAMPLE_SIZE){
+          plot_sampling = false;
+          plot_count = 0;
+        }
+      }
+      return f;
     return 0;
   }
 
@@ -264,14 +278,14 @@ int main(int argc, char** argv) {
 
   /* Callback handler for received SV messages */
   static void svUpdateListener (SVSubscriber subscriber, void* parameter, SVClientASDU asdu) {
-    printf("svUpdateListener called\n");
+    //printf("svUpdateListener called\n");
 
     const char* svID = SVClientASDU_getSvId(asdu);
-    if (svID != NULL)
-    cout<<svID<<endl;
+    //if (svID != NULL)
+    //cout<<svID<<endl;
     int channelIndex = fingChannelByName(svID);
     int dataSize = SVClientASDU_getDataSize(asdu);
-    cout<<dataSize<<endl;
+    //cout<<dataSize<<endl;
     if(channelIndex == -1){
       sv_channel newChannel;
       newChannel.name = svID;
