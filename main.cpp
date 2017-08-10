@@ -88,8 +88,6 @@ int main(int argc, char** argv) {
 
     /* GUI */
     if (nk_begin(ctx, "Sample Values Client", nk_rect(0, 0, 800, 600),NK_WINDOW_BORDER|NK_WINDOW_SCALABLE|NK_WINDOW_TITLE)) {
-      nk_layout_row_static(ctx, 30, 80, 1);
-      if (nk_button_label(ctx, "REFRESH")) channels.clear();
       nk_layout_row_dynamic(ctx,10,1);
       nk_label(ctx, "--------- CHANNELS --------", NK_TEXT_CENTERED);
 
@@ -118,6 +116,9 @@ int main(int argc, char** argv) {
           }
         }
       }
+      nk_layout_row_dynamic(ctx, 15, 1);
+      nk_layout_row_static(ctx, 30, 80, 1);
+      if (nk_button_label(ctx, "REFRESH")) channels.clear();
     }
     nk_end(ctx);
 
