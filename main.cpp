@@ -32,6 +32,7 @@
 #include "vector"
 #include <iostream>
 #include <string>
+#include <sstream>
 
 using namespace std;
 
@@ -89,7 +90,7 @@ int main(int argc, char** argv) {
     /* GUI */
     if (nk_begin(ctx, "Sample Values Client", nk_rect(0, 0, 800, 600),NK_WINDOW_BORDER|NK_WINDOW_SCALABLE|NK_WINDOW_TITLE)) {
       nk_layout_row_dynamic(ctx,10,1);
-      nk_label(ctx, "--------- CHANNELS --------", NK_TEXT_CENTERED);
+      nk_label(ctx, "---------- CHANNELS ----------", NK_TEXT_CENTERED);
 
       for(int i = 0; i < channels.size();i++){
         int op = channels[i].dataType;
@@ -106,12 +107,20 @@ int main(int argc, char** argv) {
         if(channels[i].visible){
           if(channels[i].dataType == FLOAT_){
             for(int j = 0; j < channels[i].float_values.size(); j++){
-              nk_property_float(ctx, "Value", channels[i].float_values[j], &channels[i].float_values[j],channels[i].float_values[j], 10, 1);
+              string str = "Value ";
+              stringstream ss;
+              ss << j+1;
+              str += ss.str();
+              nk_property_float(ctx, str.c_str(), channels[i].float_values[j], &channels[i].float_values[j],channels[i].float_values[j], 10, 1);
             }
           }
           else {
             for(int j = 0; j < channels[i].int_values.size(); j++){
-              nk_property_int(ctx, "Value", channels[i].int_values[j], &channels[i].int_values[j],channels[i].int_values[j], 10, 1);
+              string str = "Value ";
+              stringstream ss;
+              ss << j+1;
+              str += ss.str();
+              nk_property_int(ctx, str.c_str(), channels[i].int_values[j], &channels[i].int_values[j],channels[i].int_values[j], 10, 1);
             }
           }
         }
