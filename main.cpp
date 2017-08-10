@@ -33,6 +33,7 @@
 #include <iostream>
 #include <string>
 #include <sstream>
+#include <math.h>
 
 using namespace std;
 
@@ -78,6 +79,7 @@ static void gui_init();
 int main(int argc, char** argv) {
   gui_init();
   sv_client_init();
+  int t = 0;
   while(running) {
     /* Input */
     SDL_Event evt;
@@ -88,9 +90,11 @@ int main(int argc, char** argv) {
     }
     nk_input_end(ctx);
 
+
     /* GUI */
     if (nk_begin(ctx, "Sample Values Client", nk_rect(0, 0, 800, 600),NK_WINDOW_BORDER|NK_WINDOW_SCALABLE|NK_WINDOW_TITLE)) {
       if(advanced){
+
         nk_layout_row_dynamic(ctx,10,1);
         nk_label(ctx, "---------- ADVANCED ----------", NK_TEXT_CENTERED);
         int op = channel_advanced->dataType;
@@ -118,6 +122,30 @@ int main(int argc, char** argv) {
             nk_property_int(ctx, str.c_str(), channel_advanced->int_values[j], &(channel_advanced->int_values[j]),channel_advanced->int_values[j], 10, 1);
           }
         }
+        nk_layout_row_dynamic(ctx,30,1);
+        nk_label(ctx,"",NK_TEXT_LEFT);
+
+        nk_layout_row_static(ctx, 30, 80, channel_advanced->float_values.size() + 1);
+        nk_button_label(ctx,"PLOT");
+
+        for(int s = 0; s < channel_advanced->float_values.size();s++){
+          string str = "Value ";
+          stringstream ss;
+          ss << s+1;
+          str += ss.str();
+          if(nk_option_label(ctx, str.c_str(), t == s)) t = s;
+        }
+
+        nk_layout_row_static(ctx,200, 800, 1);
+        float marko[1000];
+        for(int t = 0; t < 1000; t++){
+          marko[t] = sin(t/100.0);
+        }
+        nk_plot(ctx,NK_CHART_LINES,marko,1000,0.001);
+
+        nk_layout_row_dynamic(ctx,50,1);
+        nk_label(ctx,"",NK_TEXT_LEFT);
+
         nk_layout_row_static(ctx, 30, 80, 1);
         if(nk_button_label(ctx,"BACK")) {
           advanced = false;
