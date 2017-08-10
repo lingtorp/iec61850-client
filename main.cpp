@@ -125,9 +125,15 @@ int main(int argc, char** argv) {
           }
         }
       }
-      nk_layout_row_dynamic(ctx, 15, 1);
-      nk_layout_row_static(ctx, 30, 80, 1);
-      if (nk_button_label(ctx, "REFRESH")) channels.clear();
+      if(channels.size() > 0){
+        nk_layout_row_dynamic(ctx, 15, 1);
+        nk_layout_row_static(ctx, 30, 80, 1);
+        if (nk_button_label(ctx, "REFRESH")) channels.clear();
+      } else {
+        nk_layout_row_dynamic(ctx,10,1);
+        nk_label(ctx, "NO AVAILABLE CHANNELS", NK_TEXT_CENTERED);
+        nk_label(ctx, "Please check your connection", NK_TEXT_CENTERED);
+      }
     }
     nk_end(ctx);
 
