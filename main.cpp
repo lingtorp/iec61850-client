@@ -41,8 +41,8 @@ enum {INT_, FLOAT_};
 // Struct that hold info abous sample value channels
 struct sv_channel {
   const char* name;
-  int int_value;
-  float float_value;
+  vector<int> int_values;
+  vector<float> float_values;
   int dataType;
 };
 
@@ -86,23 +86,29 @@ int main(int argc, char** argv) {
     nk_input_end(ctx);
 
     /* GUI */
-    if (nk_begin(ctx, "Sample Values Client", nk_rect(0, 0, 800, 600),
-    NK_WINDOW_BORDER|NK_WINDOW_SCALABLE|NK_WINDOW_TITLE)) {
-      static int op = FLOAT_;
+    if (nk_begin(ctx, "Sample Values Client", nk_rect(0, 0, 800, 600),NK_WINDOW_BORDER|NK_WINDOW_SCALABLE|NK_WINDOW_TITLE)) {
       nk_layout_row_static(ctx, 30, 80, 1);
       if (nk_button_label(ctx, "REFRESH")) channels.clear();
+      nk_layout_row_dynamic(ctx,10,1);
+      nk_label(ctx, "--------- CHANNELS --------", NK_TEXT_CENTERED);
+
       for(int i = 0; i < channels.size();i++){
         int op = channels[i].dataType;
         nk_layout_row_dynamic(ctx, 30, 12);
         if (nk_option_label(ctx, "float", op == FLOAT_)) op = FLOAT_;
         if (nk_option_label(ctx, "int", op == INT_)) op = INT_;
         channels[i].dataType = op;
-        nk_layout_row_dynamic(ctx, 30, 1);
+        nk_layout_row_dynamic(ctx, 25, 1);
+        nk_button_label(ctx,channels[i].name);
         if(channels[i].dataType == FLOAT_){
-          nk_property_float(ctx, channels[i].name, 0, &channels[i].float_value,channels[i].float_value , 10, 1);
+          for(int i = 0; i < channels[i].float_values.size(); i++){
+            nk_property_float(ctx, "x", 0, &channels[i].float_values[i],channels[i].float_values[i] , 10, 1);
+          }
         }
         else {
-          nk_property_int(ctx, channels[i].name, 0, &channels[i].int_value,channels[i].int_value, 10, 1);
+          for(int i = 0; i < channels[i].int_values.size(); i++){
+            nk_property_int(ctx, "x", 0, &channels[i].int_values[i],channels[i].int_values[i] , 10, 1);
+          }
         }
       }
     }
@@ -176,19 +182,28 @@ int main(int argc, char** argv) {
     const char* svID = SVClientASDU_getSvId(asdu);
     if (svID != NULL)
     cout<<svID<<endl;
-
     int channelIndex = fingChannelByName(svID);
+    int dataSize = SVClientASDU_getDataSize(asdu);
+    cout<<dataSize<<endl;
     if(channelIndex == -1){
       sv_channel newChannel;
       newChannel.name = svID;
-      newChannel.float_value = getSVFloat(asdu);
+      for(int i = 0; i < dataSize/4; i++){
+        newChannel.float_values.push_back(getSVFloat(asdu));
+      }
       newChannel.dataType = FLOAT_;
       channels.push_back(newChannel);
     } else {
       if(channels[channelIndex].dataType == FLOAT_){
-        channels[channelIndex].float_value = getSVFloat(asdu);
-      } else channels[channelIndex].int_value = getSVInt(asdu);
-    }
+        for(int i = 0; i < dataSize/4; i++){
+          channels[channelIndex].float_values[i] = getSVFloat(asdu);
+        }
+      } else {
+          for(int i = 0; i < dataSize/4; i++){
+            channels[channelIndex].int_values[i] = getSVInt(asdu);
+          }
+        }
+      }
   }
 
   /*
