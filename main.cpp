@@ -81,12 +81,28 @@ static void sigint_handler(int signalId);
 static float getSVFloat(SVClientASDU asdu);
 static int getSVInt(SVClientASDU asdu);
 static void gui_init();
+static string intToString(int number);
+static void leaveEmptySpace(int height);
+
+
+static void addChannelSim(){
+  sv_channel sv;
+  sv.name = "random";
+  sv.dataType = FLOAT_;
+  sv.float_values.push_back(0.1);
+  sv.float_values.push_back(0.02);
+  sv.visible = false;
+  channels.push_back(sv);
+}
 
 
 int main(int argc, char** argv) {
   gui_init();
   sv_client_init();
-  int t = 0;
+
+  int advancedMenuOp = 0;
+
+  addChannelSim();
   while(running) {
     /* Input */
     SDL_Event evt;
@@ -113,24 +129,15 @@ int main(int argc, char** argv) {
         nk_button_label(ctx,channel_advanced->name);
         if(channel_advanced->dataType == FLOAT_){
           for(int j = 0; j < channel_advanced->float_values.size(); j++){
-            string str = "Value ";
-            stringstream ss;
-            ss << j+1;
-            str += ss.str();
-            nk_property_float(ctx, str.c_str(), channel_advanced->float_values[j], &(channel_advanced->float_values[j]),channel_advanced->float_values[j], 10, 1);
+            nk_property_float(ctx, ("Value " + intToString(j+1)).c_str(), channel_advanced->float_values[j], &(channel_advanced->float_values[j]),channel_advanced->float_values[j], 10, 1);
           }
         }
         else {
           for(int j = 0; j < channel_advanced->int_values.size(); j++){
-            string str = "Value ";
-            stringstream ss;
-            ss << j+1;
-            str += ss.str();
-            nk_property_int(ctx, str.c_str(), channel_advanced->int_values[j], &(channel_advanced->int_values[j]),channel_advanced->int_values[j], 10, 1);
+            nk_property_int(ctx, ("Value " + intToString(j+1)).c_str(), channel_advanced->int_values[j], &(channel_advanced->int_values[j]),channel_advanced->int_values[j], 10, 1);
           }
         }
-        nk_layout_row_dynamic(ctx,30,1);
-        nk_label(ctx,"",NK_TEXT_LEFT);
+        leaveEmptySpace(30);
 
         nk_layout_row_static(ctx, 30, 80, channel_advanced->float_values.size() + 1);
         if(nk_button_label(ctx,"PLOT")){
@@ -138,18 +145,13 @@ int main(int argc, char** argv) {
         }
 
         for(int s = 0; s < channel_advanced->float_values.size();s++){
-          string str = "Value ";
-          stringstream ss;
-          ss << s+1;
-          str += ss.str();
-          if(nk_option_label(ctx, str.c_str(), t == s)) t = s;
+          if(nk_option_label(ctx, ("Value " + intToString(s+1)).c_str(), advancedMenuOp == s)) advancedMenuOp = s;
         }
 
         nk_layout_row_static(ctx,200, 800, 1);
         nk_plot(ctx,NK_CHART_LINES,plot_arr,PLOT_SAMPLE_SIZE,0.1);
 
-        nk_layout_row_dynamic(ctx,50,1);
-        nk_label(ctx,"",NK_TEXT_LEFT);
+        leaveEmptySpace(50);
 
         nk_layout_row_static(ctx, 30, 80, 1);
         if(nk_button_label(ctx,"BACK")) {
@@ -174,20 +176,12 @@ int main(int argc, char** argv) {
         if(channels[i].visible){
           if(channels[i].dataType == FLOAT_){
             for(int j = 0; j < channels[i].float_values.size(); j++){
-              string str = "Value ";
-              stringstream ss;
-              ss << j+1;
-              str += ss.str();
-              nk_property_float(ctx, str.c_str(), channels[i].float_values[j], &channels[i].float_values[j],channels[i].float_values[j], 10, 1);
+              nk_property_float(ctx, ("Value " + intToString(j+1)).c_str(), channels[i].float_values[j], &channels[i].float_values[j],channels[i].float_values[j], 10, 1);
             }
           }
           else {
             for(int j = 0; j < channels[i].int_values.size(); j++){
-              string str = "Value ";
-              stringstream ss;
-              ss << j+1;
-              str += ss.str();
-              nk_property_int(ctx, str.c_str(), channels[i].int_values[j], &channels[i].int_values[j],channels[i].int_values[j], 10, 1);
+              nk_property_int(ctx, ("Value " + intToString(j+1)).c_str(), channels[i].int_values[j], &channels[i].int_values[j],channels[i].int_values[j], 10, 1);
             }
           }
           nk_layout_row_static(ctx, 30, 80, 1);
@@ -232,6 +226,17 @@ int main(int argc, char** argv) {
     SVReceiver_destroy(receiver);
 
     running = false;
+  }
+
+  static string intToString(int number){
+    stringstream ss;
+    ss << number;
+    return ss.str();
+  }
+
+  static void leaveEmptySpace(int height){
+    nk_layout_row_dynamic(ctx,height,1);
+    nk_label(ctx,"",NK_TEXT_LEFT);
   }
 
 
