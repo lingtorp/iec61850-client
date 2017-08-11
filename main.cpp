@@ -23,6 +23,7 @@
 #define WINDOW_HEIGHT 600
 #define MAX_VERTEX_MEMORY 512 * 1024
 #define MAX_ELEMENT_MEMORY 128 * 1024
+/** Size of plot sample */
 #define PLOT_SAMPLE_SIZE 100
 
 #include <signal.h>
@@ -45,7 +46,7 @@ using namespace std;
 
 enum {INT_, FLOAT_};
 
-// Struct that hold info abous sample value channels
+/** Sample values channel */
 struct sv_channel {
   const char* name;
   vector<int> int_values;
@@ -58,20 +59,34 @@ struct sv_channel {
 ////////////////////////////////
 //// Variables declaration ////
 //////////////////////////////
+
+/** Main loop variable */
 static bool running = true;
+/** Global variables for gui window */
 struct nk_color background;
 static int win_width, win_height;
 static SDL_Window *win;
 static SVReceiver receiver;
 struct nk_context *ctx;
+/** Vector with all recieving channels */
 static vector<sv_channel> channels;
+/** Global variable decides which menu will be shown */
 static bool advanced = false;
+/** Global varible hols channel that is in advanced menu */
 static sv_channel *channel_advanced;
+/** Global variable decides which value option will be choosen */
 static int advancedMenuOp = 0;
+/** Default interface name for Ubuntu running on VM VirtualBox */
 static string interface = "enp0s3";
+/** Global array holds float sv for plot */
 static float plot_arr_float[PLOT_SAMPLE_SIZE];
+/** Global array holds int sv for plot */
 static float plot_arr_int[PLOT_SAMPLE_SIZE];
+/** Global varialbe hold position for plot_arr input */
 static int plot_count = 0;
+/** Global variable hold position for plot_arr read */
+static int readPointer = 0;
+/** Global varialbe decides if plot values will be collected */
 static bool plot_sampling = false;
 
 
@@ -93,8 +108,10 @@ static float rms_float();
 static float rms_int();
 static string floatToString(float number);
 static vector<string> find_network_interface_names();
+static void getFloatArray(float array[]);
+static void getIntArray(float array[]);
 
-int readPointer = 0;
+
 
 static void addChannelSim(){
   sv_channel sv;
@@ -106,22 +123,18 @@ static void addChannelSim(){
   channels.push_back(sv);
 }
 
-static void list(float array[]){
-  int p = readPointer;
-  for(int i = 0; i < PLOT_SAMPLE_SIZE; i++){
-    array[i] = plot_arr_float[p % PLOT_SAMPLE_SIZE];
-    p++;
-  }
-}
 
-
+/** Entry point for the program */
 int main(int argc, char** argv) {
 
+  /* If interface name is sent take it, otherwise use default interface name */
   if(argc == 2) {
     interface = string(argv[1]);
   }
 
+  /* Initialize gui window */
   gui_init();
+  /* Initialize Sample values client */
   sv_client_init();
   //addChannelSim();
 
@@ -138,10 +151,13 @@ int main(int argc, char** argv) {
 
     /* GUI */
     if (nk_begin(ctx, "Sample Values Client", nk_rect(0, 0, 800, 600),NK_WINDOW_BORDER|NK_WINDOW_SCALABLE|NK_WINDOW_TITLE)) {
+      /* Display advanced menu if it is choosen */
       if(advanced){
 
         nk_layout_row_dynamic(ctx,10,1);
         nk_label(ctx, "---------- ADVANCED ----------", NK_TEXT_CENTERED);
+
+        /* Choose between int and float datatype  */
         int op = channel_advanced->dataType;
         nk_layout_row_dynamic(ctx, 30, 12);
         if (nk_option_label(ctx, "float", op == FLOAT_)) op = FLOAT_;
@@ -149,6 +165,8 @@ int main(int argc, char** argv) {
         channel_advanced->dataType = op;
         nk_layout_row_dynamic(ctx, 25, 1);
         nk_button_label(ctx,channel_advanced->name);
+
+        /* Display each channel with its number and values */
         if(channel_advanced->dataType == FLOAT_){
           for(int j = 0; j < channel_advanced->float_values.size(); j++){
             nk_property_float(ctx, ("Value " + intToString(j+1)).c_str(), channel_advanced->float_values[j], &(channel_advanced->float_values[j]),channel_advanced->float_values[j], 10, 1);
@@ -159,13 +177,14 @@ int main(int argc, char** argv) {
             nk_property_int(ctx, ("Value " + intToString(j+1)).c_str(), channel_advanced->int_values[j], &(channel_advanced->int_values[j]),channel_advanced->int_values[j], 10, 1);
           }
         }
+
         leaveEmptySpace(30);
+
         int optionsCount;
         if(channel_advanced->dataType == FLOAT_) optionsCount = channel_advanced->float_values.size();
         else optionsCount = channel_advanced->int_values.size();
 
-
-
+        /* Displey plot button menu */
         nk_layout_row_static(ctx, 30, 80, optionsCount + 2);
         if (nk_menu_begin_label(ctx, "PLOT", NK_TEXT_LEFT, nk_vec2(120, 200))) {
                 nk_layout_row_dynamic(ctx, 30, 1);
@@ -174,18 +193,24 @@ int main(int argc, char** argv) {
                 nk_menu_end(ctx);
         }
 
+        /* Displey all channels as options to choose between for plot */
         for(int s = 0; s < optionsCount; s++){
           if(nk_option_label(ctx, ("Value " + intToString(s+1)).c_str(), advancedMenuOp == s)) advancedMenuOp = s;
         }
 
+        /* Plot the graph */
         nk_layout_row_static(ctx,200, 800, 1);
         if(channel_advanced->dataType == FLOAT_){
           float arr[PLOT_SAMPLE_SIZE];
-          list(arr);
+          getFloatArray(arr);
+          nk_plot(ctx,NK_CHART_LINES,arr,PLOT_SAMPLE_SIZE,0.1);
+        } else {
+          float arr[PLOT_SAMPLE_SIZE];
+          getIntArray(arr);
           nk_plot(ctx,NK_CHART_LINES,arr,PLOT_SAMPLE_SIZE,0.1);
         }
-        else nk_plot(ctx,NK_CHART_LINES,plot_arr_int,PLOT_SAMPLE_SIZE,0.1);
 
+        /* Calculate and displey rms value if plot is on */
         if(plot_sampling){
           nk_layout_row_dynamic(ctx,30,1);
           if(channel_advanced->dataType == FLOAT_) nk_label(ctx, ("RMS Value:  " + floatToString(rms_float())).c_str(), NK_TEXT_LEFT);
@@ -194,6 +219,7 @@ int main(int argc, char** argv) {
 
         leaveEmptySpace(50);
 
+        /* Display back button */
         nk_layout_row_static(ctx, 30, 80, 1);
         if(nk_button_label(ctx,"BACK")) {
           advanced = false;
@@ -201,32 +227,30 @@ int main(int argc, char** argv) {
           clearIntSample();
           clearFloatSample();
         }
-      } else {
-
+      }
+      /* If advanced menu if turned off dispay regural menu */
+      else {
       nk_layout_row_dynamic(ctx,10,1);
       nk_label(ctx, "---------- CHANNELS ----------", NK_TEXT_CENTERED);
       nk_layout_row_dynamic(ctx,10,1);
       nk_label(ctx, ("Using interface: " + interface).c_str(), NK_TEXT_CENTERED);
-
+      /* Dispay menu with all available interfaces */
       vector<string> available_interfaces = find_network_interface_names();
       nk_layout_row_static(ctx, 30, 150, 1);
       if (nk_menu_begin_label(ctx, "AVAILABLE INTERFACES", NK_TEXT_LEFT, nk_vec2(120, 200))) {
               nk_layout_row_dynamic(ctx, 30, 1);
               for(int i = 0; i < available_interfaces.size();i++ ){
                 if(nk_menu_item_label(ctx, available_interfaces[i].c_str(), NK_TEXT_LEFT)) {
+                  /* Re-initialize the client if we choose another interface */
                   interface = available_interfaces[i];
-                  /* Stop listening to SV messages */
                   SVReceiver_stop(receiver);
-
-                  /* Cleanup and free resources */
                   SVReceiver_destroy(receiver);
                   sv_client_init();
                 }
               }
               nk_menu_end(ctx);
       }
-
-
+      /* Display all channels with name and all values */
       for(int i = 0; i < channels.size();i++){
         int op = channels[i].dataType;
         nk_layout_row_dynamic(ctx, 30, 12);
@@ -284,6 +308,10 @@ int main(int argc, char** argv) {
     return 0;
   }
 
+  /*
+  * Calculates and returns RMS (Root Mean Square)
+  *
+  */
   static float rms_int(){
     long sum = 0;
     for(int i = 0; i < PLOT_SAMPLE_SIZE; i++){
@@ -483,6 +511,23 @@ int main(int argc, char** argv) {
     SVReceiver_start(receiver);
 
     signal(SIGINT, sigint_handler);
+  }
+
+
+  static void getFloatArray(float array[]){
+    int p = readPointer;
+    for(int i = 0; i < PLOT_SAMPLE_SIZE; i++){
+      array[i] = plot_arr_float[p % PLOT_SAMPLE_SIZE];
+      p++;
+    }
+  }
+
+  static void getIntArray(float array[]){
+    int p = readPointer;
+    for(int i = 0; i < PLOT_SAMPLE_SIZE; i++){
+      array[i] = plot_arr_int[p % PLOT_SAMPLE_SIZE];
+      p++;
+    }
   }
 
   /** Find all the network interface names (platform specifics) */
