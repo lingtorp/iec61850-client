@@ -36,6 +36,7 @@
 #include <string>
 #include <sstream>
 #include <math.h>
+#include <iomanip>
 
 using namespace std;
 
@@ -66,6 +67,7 @@ static bool advanced = false;
 static sv_channel *channel_advanced;
 static int advancedMenuOp = 0;
 
+
 // test
 static float plot_arr_float[PLOT_SAMPLE_SIZE];
 static float plot_arr_int[PLOT_SAMPLE_SIZE];
@@ -85,6 +87,11 @@ static int getSVInt(SVClientASDU asdu);
 static void gui_init();
 static string intToString(int number);
 static void leaveEmptySpace(int height);
+static void clearIntSample();
+static void clearFloatSample();
+static float rms_float();
+static float rms_int();
+static string floatToString(float number);
 
 
 static void addChannelSim(){
@@ -144,9 +151,13 @@ int main(int argc, char** argv) {
         else optionsCount = channel_advanced->int_values.size();
 
 
-        nk_layout_row_static(ctx, 30, 80, optionsCount + 1);
-        if(nk_button_label(ctx,"PLOT")){
-            plot_sampling = true;
+
+        nk_layout_row_static(ctx, 30, 80, optionsCount + 2);
+        if (nk_menu_begin_label(ctx, "PLOT", NK_TEXT_LEFT, nk_vec2(120, 200))) {
+                nk_layout_row_dynamic(ctx, 30, 1);
+                if(nk_menu_item_label(ctx, "START", NK_TEXT_LEFT)) plot_sampling = true;
+                if(nk_menu_item_label(ctx, "STOP", NK_TEXT_LEFT)) plot_sampling = false;
+                nk_menu_end(ctx);
         }
 
         for(int s = 0; s < optionsCount; s++){
@@ -157,11 +168,20 @@ int main(int argc, char** argv) {
         if(channel_advanced->dataType == FLOAT_) nk_plot(ctx,NK_CHART_LINES,plot_arr_float,PLOT_SAMPLE_SIZE,0.1);
         else nk_plot(ctx,NK_CHART_LINES,plot_arr_int,PLOT_SAMPLE_SIZE,0.1);
 
+        if(plot_sampling){
+          nk_layout_row_dynamic(ctx,30,1);
+          if(channel_advanced->dataType == FLOAT_) nk_label(ctx, ("RMS Value:  " + floatToString(rms_float())).c_str(), NK_TEXT_LEFT);
+          else nk_label(ctx, ("RMS Value:  " + floatToString(rms_int())).c_str(), NK_TEXT_LEFT);
+        }
+
         leaveEmptySpace(50);
 
         nk_layout_row_static(ctx, 30, 80, 1);
         if(nk_button_label(ctx,"BACK")) {
           advanced = false;
+          plot_sampling = false;
+          clearIntSample();
+          clearFloatSample();
         }
       } else {
       nk_layout_row_dynamic(ctx,10,1);
@@ -224,6 +244,22 @@ int main(int argc, char** argv) {
     return 0;
   }
 
+  static float rms_int(){
+    float sum = 0;
+    for(int i = 0; i < PLOT_SAMPLE_SIZE; i++){
+      sum += plot_arr_int[i] * plot_arr_int[i];
+    }
+    return sqrt(sum/PLOT_SAMPLE_SIZE);
+  }
+
+  static float rms_float(){
+    long sum = 0;
+    for(int i = 0; i < PLOT_SAMPLE_SIZE; i++){
+      sum += plot_arr_float[i] * plot_arr_float[i];
+    }
+    return sqrt(sum/(float)PLOT_SAMPLE_SIZE);
+  }
+
   static void cleanup(){
     /* Stop listening to SV messages */
     SVReceiver_stop(receiver);
@@ -240,9 +276,27 @@ int main(int argc, char** argv) {
     return ss.str();
   }
 
+  static string floatToString(float number){
+    stringstream ss;
+    ss <<fixed<<setprecision(4)<< number;
+    return ss.str();
+  }
+
   static void leaveEmptySpace(int height){
     nk_layout_row_dynamic(ctx,height,1);
     nk_label(ctx,"",NK_TEXT_LEFT);
+  }
+
+  static void clearIntSample(){
+    for(int i = 0; i < PLOT_SAMPLE_SIZE; i++){
+      plot_arr_int[i] = 0;
+    }
+  }
+
+  static void clearFloatSample(){
+    for(int i = 0; i < PLOT_SAMPLE_SIZE; i++){
+      plot_arr_float[i] = 0;
+    }
   }
 
 
@@ -304,7 +358,6 @@ int main(int argc, char** argv) {
               plot_arr_float[plot_count] = channels[channelIndex].float_values[i] ;
               plot_count++;
               if(plot_count >= PLOT_SAMPLE_SIZE){
-                plot_sampling = false;
                 plot_count = 0;
               }
             }
@@ -319,7 +372,6 @@ int main(int argc, char** argv) {
                 plot_arr_int[plot_count] = channels[channelIndex].int_values[i] ;
                 plot_count++;
                 if(plot_count >= PLOT_SAMPLE_SIZE){
-                  plot_sampling = false;
                   plot_count = 0;
                 }
               }
