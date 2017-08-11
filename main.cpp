@@ -21,10 +21,8 @@
 
 #define WINDOW_WIDTH 800
 #define WINDOW_HEIGHT 600
-
 #define MAX_VERTEX_MEMORY 512 * 1024
 #define MAX_ELEMENT_MEMORY 128 * 1024
-
 #define PLOT_SAMPLE_SIZE 100
 
 #include <signal.h>
@@ -36,6 +34,11 @@
 #include <string>
 #include <sstream>
 #include <math.h>
+#include <iomanip>
+
+#ifdef __LINUX__
+#include <ifaddrs.h>
+#endif
 
 using namespace std;
 
@@ -64,9 +67,10 @@ struct nk_context *ctx;
 static vector<sv_channel> channels;
 static bool advanced = false;
 static sv_channel *channel_advanced;
-
-// test
-static float plot_arr[PLOT_SAMPLE_SIZE];
+static int advancedMenuOp = 0;
+static string interface = "enp0s3";
+static float plot_arr_float[PLOT_SAMPLE_SIZE];
+static float plot_arr_int[PLOT_SAMPLE_SIZE];
 static int plot_count = 0;
 static bool plot_sampling = false;
 
@@ -81,12 +85,32 @@ static void sigint_handler(int signalId);
 static float getSVFloat(SVClientASDU asdu);
 static int getSVInt(SVClientASDU asdu);
 static void gui_init();
+static string intToString(int number);
+static void leaveEmptySpace(int height);
+static void clearIntSample();
+static void clearFloatSample();
+static float rms_float();
+static float rms_int();
+static string floatToString(float number);
+static vector<string> find_network_interface_names();
+
+
+static void addChannelSim(){
+  sv_channel sv;
+  sv.name = "random";
+  sv.dataType = FLOAT_;
+  sv.float_values.push_back(0.1);
+  sv.float_values.push_back(0.02);
+  sv.visible = false;
+  channels.push_back(sv);
+}
 
 
 int main(int argc, char** argv) {
   gui_init();
   sv_client_init();
-  int t = 0;
+  addChannelSim();
+
   while(running) {
     /* Input */
     SDL_Event evt;
@@ -113,51 +137,73 @@ int main(int argc, char** argv) {
         nk_button_label(ctx,channel_advanced->name);
         if(channel_advanced->dataType == FLOAT_){
           for(int j = 0; j < channel_advanced->float_values.size(); j++){
-            string str = "Value ";
-            stringstream ss;
-            ss << j+1;
-            str += ss.str();
-            nk_property_float(ctx, str.c_str(), channel_advanced->float_values[j], &(channel_advanced->float_values[j]),channel_advanced->float_values[j], 10, 1);
+            nk_property_float(ctx, ("Value " + intToString(j+1)).c_str(), channel_advanced->float_values[j], &(channel_advanced->float_values[j]),channel_advanced->float_values[j], 10, 1);
           }
         }
         else {
           for(int j = 0; j < channel_advanced->int_values.size(); j++){
-            string str = "Value ";
-            stringstream ss;
-            ss << j+1;
-            str += ss.str();
-            nk_property_int(ctx, str.c_str(), channel_advanced->int_values[j], &(channel_advanced->int_values[j]),channel_advanced->int_values[j], 10, 1);
+            nk_property_int(ctx, ("Value " + intToString(j+1)).c_str(), channel_advanced->int_values[j], &(channel_advanced->int_values[j]),channel_advanced->int_values[j], 10, 1);
           }
         }
-        nk_layout_row_dynamic(ctx,30,1);
-        nk_label(ctx,"",NK_TEXT_LEFT);
+        leaveEmptySpace(30);
 
-        nk_layout_row_static(ctx, 30, 80, channel_advanced->float_values.size() + 1);
-        if(nk_button_label(ctx,"PLOT")){
-            plot_sampling = true;
+        int optionsCount;
+        if(channel_advanced->dataType == FLOAT_) optionsCount = channel_advanced->float_values.size();
+        else optionsCount = channel_advanced->int_values.size();
+
+
+
+        nk_layout_row_static(ctx, 30, 80, optionsCount + 2);
+        if (nk_menu_begin_label(ctx, "PLOT", NK_TEXT_LEFT, nk_vec2(120, 200))) {
+                nk_layout_row_dynamic(ctx, 30, 1);
+                if(nk_menu_item_label(ctx, "START", NK_TEXT_LEFT)) plot_sampling = true;
+                if(nk_menu_item_label(ctx, "STOP", NK_TEXT_LEFT)) plot_sampling = false;
+                nk_menu_end(ctx);
         }
 
-        for(int s = 0; s < channel_advanced->float_values.size();s++){
-          string str = "Value ";
-          stringstream ss;
-          ss << s+1;
-          str += ss.str();
-          if(nk_option_label(ctx, str.c_str(), t == s)) t = s;
+        for(int s = 0; s < optionsCount; s++){
+          if(nk_option_label(ctx, ("Value " + intToString(s+1)).c_str(), advancedMenuOp == s)) advancedMenuOp = s;
         }
 
         nk_layout_row_static(ctx,200, 800, 1);
-        nk_plot(ctx,NK_CHART_LINES,plot_arr,PLOT_SAMPLE_SIZE,0.1);
+        if(channel_advanced->dataType == FLOAT_) nk_plot(ctx,NK_CHART_LINES,plot_arr_float,PLOT_SAMPLE_SIZE,0.1);
+        else nk_plot(ctx,NK_CHART_LINES,plot_arr_int,PLOT_SAMPLE_SIZE,0.1);
 
-        nk_layout_row_dynamic(ctx,50,1);
-        nk_label(ctx,"",NK_TEXT_LEFT);
+        if(plot_sampling){
+          nk_layout_row_dynamic(ctx,30,1);
+          if(channel_advanced->dataType == FLOAT_) nk_label(ctx, ("RMS Value:  " + floatToString(rms_float())).c_str(), NK_TEXT_LEFT);
+          else nk_label(ctx, ("RMS Value:  " + floatToString(rms_int())).c_str(), NK_TEXT_LEFT);
+        }
+
+        leaveEmptySpace(50);
 
         nk_layout_row_static(ctx, 30, 80, 1);
         if(nk_button_label(ctx,"BACK")) {
           advanced = false;
+          plot_sampling = false;
+          clearIntSample();
+          clearFloatSample();
         }
       } else {
+
       nk_layout_row_dynamic(ctx,10,1);
       nk_label(ctx, "---------- CHANNELS ----------", NK_TEXT_CENTERED);
+      nk_layout_row_dynamic(ctx,10,1);
+      nk_label(ctx, ("Using interface: " + interface).c_str(), NK_TEXT_CENTERED);
+
+      vector<string> available_interfaces = find_network_interface_names();
+      nk_layout_row_static(ctx, 30, 150, 1);
+      if (nk_menu_begin_label(ctx, "AVAILABLE INTERFACES", NK_TEXT_LEFT, nk_vec2(120, 200))) {
+              nk_layout_row_dynamic(ctx, 30, 1);
+              for(int i = 0; i < available_interfaces.size();i++ ){
+                if(nk_menu_item_label(ctx, available_interfaces[i].c_str(), NK_TEXT_LEFT)) {
+                  interface = available_interfaces[i];
+                  sv_client_init();
+                }
+              }
+              nk_menu_end(ctx);
+      }
+
 
       for(int i = 0; i < channels.size();i++){
         int op = channels[i].dataType;
@@ -174,20 +220,12 @@ int main(int argc, char** argv) {
         if(channels[i].visible){
           if(channels[i].dataType == FLOAT_){
             for(int j = 0; j < channels[i].float_values.size(); j++){
-              string str = "Value ";
-              stringstream ss;
-              ss << j+1;
-              str += ss.str();
-              nk_property_float(ctx, str.c_str(), channels[i].float_values[j], &channels[i].float_values[j],channels[i].float_values[j], 10, 1);
+              nk_property_float(ctx, ("Value " + intToString(j+1)).c_str(), channels[i].float_values[j], &channels[i].float_values[j],channels[i].float_values[j], 10, 1);
             }
           }
           else {
             for(int j = 0; j < channels[i].int_values.size(); j++){
-              string str = "Value ";
-              stringstream ss;
-              ss << j+1;
-              str += ss.str();
-              nk_property_int(ctx, str.c_str(), channels[i].int_values[j], &channels[i].int_values[j],channels[i].int_values[j], 10, 1);
+              nk_property_int(ctx, ("Value " + intToString(j+1)).c_str(), channels[i].int_values[j], &channels[i].int_values[j],channels[i].int_values[j], 10, 1);
             }
           }
           nk_layout_row_static(ctx, 30, 80, 1);
@@ -224,6 +262,22 @@ int main(int argc, char** argv) {
     return 0;
   }
 
+  static float rms_int(){
+    long sum = 0;
+    for(int i = 0; i < PLOT_SAMPLE_SIZE; i++){
+      sum += plot_arr_int[i] * plot_arr_int[i];
+    }
+    return sqrt(sum/(float)PLOT_SAMPLE_SIZE);
+  }
+
+  static float rms_float(){
+    float sum = 0;
+    for(int i = 0; i < PLOT_SAMPLE_SIZE; i++){
+      sum += plot_arr_float[i] * plot_arr_float[i];
+    }
+    return sqrt(sum/PLOT_SAMPLE_SIZE);
+  }
+
   static void cleanup(){
     /* Stop listening to SV messages */
     SVReceiver_stop(receiver);
@@ -232,6 +286,35 @@ int main(int argc, char** argv) {
     SVReceiver_destroy(receiver);
 
     running = false;
+  }
+
+  static string intToString(int number){
+    stringstream ss;
+    ss << number;
+    return ss.str();
+  }
+
+  static string floatToString(float number){
+    stringstream ss;
+    ss <<fixed<<setprecision(4)<< number;
+    return ss.str();
+  }
+
+  static void leaveEmptySpace(int height){
+    nk_layout_row_dynamic(ctx,height,1);
+    nk_label(ctx,"",NK_TEXT_LEFT);
+  }
+
+  static void clearIntSample(){
+    for(int i = 0; i < PLOT_SAMPLE_SIZE; i++){
+      plot_arr_int[i] = 0;
+    }
+  }
+
+  static void clearFloatSample(){
+    for(int i = 0; i < PLOT_SAMPLE_SIZE; i++){
+      plot_arr_float[i] = 0;
+    }
   }
 
 
@@ -255,17 +338,7 @@ int main(int argc, char** argv) {
    * Read and return float from ethernet.
   */
   static float getSVFloat(SVClientASDU asdu, int pos){
-      float f = SVClientASDU_getFLOAT32(asdu, pos);
-      if(plot_sampling && pos == 0){
-        plot_arr[plot_count] = f;
-        plot_count++;
-        if(plot_count >= PLOT_SAMPLE_SIZE){
-          plot_sampling = false;
-          plot_count = 0;
-        }
-      }
-      return f;
-    return 0;
+      return SVClientASDU_getFLOAT32(asdu, pos);
   }
 
   /*
@@ -273,7 +346,6 @@ int main(int argc, char** argv) {
   */
   static int getSVInt(SVClientASDU asdu,int pos){
       return SVClientASDU_getINT32(asdu, pos);
-    return 0;
   }
 
   /* Callback handler for received SV messages */
@@ -300,12 +372,28 @@ int main(int argc, char** argv) {
       if(channels[channelIndex].dataType == FLOAT_){
         for(int i = 0; i < dataSize/4; i++){
           channels[channelIndex].float_values[i] = getSVFloat(asdu, i*4);
+            if(plot_sampling && i == advancedMenuOp){
+              plot_arr_float[plot_count] = channels[channelIndex].float_values[i] ;
+              plot_count++;
+              if(plot_count >= PLOT_SAMPLE_SIZE){
+                plot_count = 0;
+              }
+            }
         }
       } else {
           for(int i = 0; i < dataSize/4; i++){
             if(channels[channelIndex].int_values.size() <= i)
               channels[channelIndex].int_values.push_back(getSVInt(asdu, i*4));
-            else channels[channelIndex].int_values[i] = getSVInt(asdu, i*4);
+            else {
+              channels[channelIndex].int_values[i] = getSVInt(asdu, i*4);
+              if(plot_sampling && i == advancedMenuOp){
+                plot_arr_int[plot_count] = channels[channelIndex].int_values[i] ;
+                plot_count++;
+                if(plot_count >= PLOT_SAMPLE_SIZE){
+                  plot_count = 0;
+                }
+              }
+            }
           }
         }
       }
@@ -355,8 +443,8 @@ int main(int argc, char** argv) {
     // SV client
     receiver = SVReceiver_create();
 
-    printf("Using interface enp0s3 ");
-    SVReceiver_setInterfaceId(receiver, "enp0s3");
+    cout<<("Using interface " + interface)<<endl;
+    SVReceiver_setInterfaceId(receiver, interface.c_str());
 
     /* Create a subscriber listening to SV messages with APPID 4000h */
     SVSubscriber subscriber = SVSubscriber_create(NULL, 0x4000);
@@ -371,4 +459,29 @@ int main(int argc, char** argv) {
     SVReceiver_start(receiver);
 
     signal(SIGINT, sigint_handler);
+  }
+
+  /** Find all the network interface names (platform specifics) */
+  static vector<string> find_network_interface_names() {
+    vector<string> network_interfaces;
+  #ifdef __LINUX__
+    struct ifaddrs* addrs, *tmp;
+
+    getifaddrs(&addrs);
+    tmp = addrs;
+
+    while(tmp) {
+        if (tmp->ifa_addr && tmp->ifa_addr->sa_family == AF_PACKET) {
+            network_interfaces.push_back(string(tmp->ifa_name));
+        }
+        tmp = tmp->ifa_next;
+    }
+
+    freeifaddrs(addrs);
+  #elif
+    // FIXME: Windows and other platforms are unsupported
+    exit(1);
+  #endif
+
+    return network_interfaces;
   }
