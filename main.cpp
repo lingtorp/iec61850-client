@@ -21,10 +21,8 @@
 
 #define WINDOW_WIDTH 800
 #define WINDOW_HEIGHT 600
-
 #define MAX_VERTEX_MEMORY 512 * 1024
 #define MAX_ELEMENT_MEMORY 128 * 1024
-
 #define PLOT_SAMPLE_SIZE 100
 
 #include <signal.h>
@@ -71,9 +69,6 @@ static bool advanced = false;
 static sv_channel *channel_advanced;
 static int advancedMenuOp = 0;
 static string interface = "enp0s3";
-
-
-// test
 static float plot_arr_float[PLOT_SAMPLE_SIZE];
 static float plot_arr_int[PLOT_SAMPLE_SIZE];
 static int plot_count = 0;
@@ -97,6 +92,7 @@ static void clearFloatSample();
 static float rms_float();
 static float rms_int();
 static string floatToString(float number);
+static vector<string> find_network_interface_names();
 
 
 static void addChannelSim(){
@@ -107,31 +103,6 @@ static void addChannelSim(){
   sv.float_values.push_back(0.02);
   sv.visible = false;
   channels.push_back(sv);
-}
-
-/** Find all the network interface names (platform specifics) */
-vector<string> find_network_interface_names() {
-  vector<string> network_interfaces;
-#ifdef __LINUX__
-  struct ifaddrs* addrs, *tmp;
-
-  getifaddrs(&addrs);
-  tmp = addrs;
-
-  while(tmp) {
-      if (tmp->ifa_addr && tmp->ifa_addr->sa_family == AF_PACKET) {
-          network_interfaces.push_back(string(tmp->ifa_name));
-      }
-      tmp = tmp->ifa_next;
-  }
-
-  freeifaddrs(addrs);
-#elif
-  // FIXME: Windows and other platforms are unsupported
-  exit(1);
-#endif
-
-  return network_interfaces;
 }
 
 
@@ -215,11 +186,24 @@ int main(int argc, char** argv) {
         }
       } else {
 
-
       nk_layout_row_dynamic(ctx,10,1);
       nk_label(ctx, "---------- CHANNELS ----------", NK_TEXT_CENTERED);
       nk_layout_row_dynamic(ctx,10,1);
       nk_label(ctx, ("Using interface: " + interface).c_str(), NK_TEXT_CENTERED);
+
+      vector<string> available_interfaces = find_network_interface_names();
+      nk_layout_row_static(ctx, 30, 150, 1);
+      if (nk_menu_begin_label(ctx, "AVAILABLE INTERFACES", NK_TEXT_LEFT, nk_vec2(120, 200))) {
+              nk_layout_row_dynamic(ctx, 30, 1);
+              for(int i = 0; i < available_interfaces.size();i++ ){
+                if(nk_menu_item_label(ctx, available_interfaces[i].c_str(), NK_TEXT_LEFT)) {
+                  interface = available_interfaces[i];
+                  sv_client_init();
+                }
+              }
+              nk_menu_end(ctx);
+      }
+
 
       for(int i = 0; i < channels.size();i++){
         int op = channels[i].dataType;
@@ -475,4 +459,29 @@ int main(int argc, char** argv) {
     SVReceiver_start(receiver);
 
     signal(SIGINT, sigint_handler);
+  }
+
+  /** Find all the network interface names (platform specifics) */
+  static vector<string> find_network_interface_names() {
+    vector<string> network_interfaces;
+  #ifdef __LINUX__
+    struct ifaddrs* addrs, *tmp;
+
+    getifaddrs(&addrs);
+    tmp = addrs;
+
+    while(tmp) {
+        if (tmp->ifa_addr && tmp->ifa_addr->sa_family == AF_PACKET) {
+            network_interfaces.push_back(string(tmp->ifa_name));
+        }
+        tmp = tmp->ifa_next;
+    }
+
+    freeifaddrs(addrs);
+  #elif
+    // FIXME: Windows and other platforms are unsupported
+    exit(1);
+  #endif
+
+    return network_interfaces;
   }
