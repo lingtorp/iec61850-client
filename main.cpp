@@ -94,6 +94,7 @@ static float rms_int();
 static string floatToString(float number);
 static vector<string> find_network_interface_names();
 
+int readPointer = 0;
 
 static void addChannelSim(){
   sv_channel sv;
@@ -105,11 +106,24 @@ static void addChannelSim(){
   channels.push_back(sv);
 }
 
+static void list(float array[]){
+  int p = readPointer;
+  for(int i = 0; i < PLOT_SAMPLE_SIZE; i++){
+    array[i] = plot_arr_float[p % PLOT_SAMPLE_SIZE];
+    p++;
+  }
+}
+
 
 int main(int argc, char** argv) {
+
+  if(argc == 2) {
+    interface = string(argv[1]);
+  }
+
   gui_init();
   sv_client_init();
-  addChannelSim();
+  //addChannelSim();
 
   while(running) {
     /* Input */
@@ -146,7 +160,6 @@ int main(int argc, char** argv) {
           }
         }
         leaveEmptySpace(30);
-
         int optionsCount;
         if(channel_advanced->dataType == FLOAT_) optionsCount = channel_advanced->float_values.size();
         else optionsCount = channel_advanced->int_values.size();
@@ -166,7 +179,11 @@ int main(int argc, char** argv) {
         }
 
         nk_layout_row_static(ctx,200, 800, 1);
-        if(channel_advanced->dataType == FLOAT_) nk_plot(ctx,NK_CHART_LINES,plot_arr_float,PLOT_SAMPLE_SIZE,0.1);
+        if(channel_advanced->dataType == FLOAT_){
+          float arr[PLOT_SAMPLE_SIZE];
+          list(arr);
+          nk_plot(ctx,NK_CHART_LINES,arr,PLOT_SAMPLE_SIZE,0.1);
+        }
         else nk_plot(ctx,NK_CHART_LINES,plot_arr_int,PLOT_SAMPLE_SIZE,0.1);
 
         if(plot_sampling){
@@ -198,6 +215,11 @@ int main(int argc, char** argv) {
               for(int i = 0; i < available_interfaces.size();i++ ){
                 if(nk_menu_item_label(ctx, available_interfaces[i].c_str(), NK_TEXT_LEFT)) {
                   interface = available_interfaces[i];
+                  /* Stop listening to SV messages */
+                  SVReceiver_stop(receiver);
+
+                  /* Cleanup and free resources */
+                  SVReceiver_destroy(receiver);
                   sv_client_init();
                 }
               }
@@ -375,6 +397,7 @@ int main(int argc, char** argv) {
             if(plot_sampling && i == advancedMenuOp){
               plot_arr_float[plot_count] = channels[channelIndex].float_values[i] ;
               plot_count++;
+              readPointer++;
               if(plot_count >= PLOT_SAMPLE_SIZE){
                 plot_count = 0;
               }
@@ -398,6 +421,7 @@ int main(int argc, char** argv) {
         }
       }
   }
+
 
   /*
    * Initilize gui window.
