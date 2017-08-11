@@ -64,9 +64,11 @@ struct nk_context *ctx;
 static vector<sv_channel> channels;
 static bool advanced = false;
 static sv_channel *channel_advanced;
+static int advancedMenuOp = 0;
 
 // test
-static float plot_arr[PLOT_SAMPLE_SIZE];
+static float plot_arr_float[PLOT_SAMPLE_SIZE];
+static float plot_arr_int[PLOT_SAMPLE_SIZE];
 static int plot_count = 0;
 static bool plot_sampling = false;
 
@@ -99,8 +101,6 @@ static void addChannelSim(){
 int main(int argc, char** argv) {
   gui_init();
   sv_client_init();
-
-  int advancedMenuOp = 0;
 
   addChannelSim();
   while(running) {
@@ -139,17 +139,23 @@ int main(int argc, char** argv) {
         }
         leaveEmptySpace(30);
 
-        nk_layout_row_static(ctx, 30, 80, channel_advanced->float_values.size() + 1);
+        int optionsCount;
+        if(channel_advanced->dataType == FLOAT_) optionsCount = channel_advanced->float_values.size();
+        else optionsCount = channel_advanced->int_values.size();
+
+
+        nk_layout_row_static(ctx, 30, 80, optionsCount + 1);
         if(nk_button_label(ctx,"PLOT")){
             plot_sampling = true;
         }
 
-        for(int s = 0; s < channel_advanced->float_values.size();s++){
+        for(int s = 0; s < optionsCount; s++){
           if(nk_option_label(ctx, ("Value " + intToString(s+1)).c_str(), advancedMenuOp == s)) advancedMenuOp = s;
         }
 
         nk_layout_row_static(ctx,200, 800, 1);
-        nk_plot(ctx,NK_CHART_LINES,plot_arr,PLOT_SAMPLE_SIZE,0.1);
+        if(channel_advanced->dataType == FLOAT_) nk_plot(ctx,NK_CHART_LINES,plot_arr_float,PLOT_SAMPLE_SIZE,0.1);
+        else nk_plot(ctx,NK_CHART_LINES,plot_arr_int,PLOT_SAMPLE_SIZE,0.1);
 
         leaveEmptySpace(50);
 
@@ -260,17 +266,7 @@ int main(int argc, char** argv) {
    * Read and return float from ethernet.
   */
   static float getSVFloat(SVClientASDU asdu, int pos){
-      float f = SVClientASDU_getFLOAT32(asdu, pos);
-      if(plot_sampling && pos == 0){
-        plot_arr[plot_count] = f;
-        plot_count++;
-        if(plot_count >= PLOT_SAMPLE_SIZE){
-          plot_sampling = false;
-          plot_count = 0;
-        }
-      }
-      return f;
-    return 0;
+      return SVClientASDU_getFLOAT32(asdu, pos);
   }
 
   /*
@@ -278,7 +274,6 @@ int main(int argc, char** argv) {
   */
   static int getSVInt(SVClientASDU asdu,int pos){
       return SVClientASDU_getINT32(asdu, pos);
-    return 0;
   }
 
   /* Callback handler for received SV messages */
@@ -305,12 +300,30 @@ int main(int argc, char** argv) {
       if(channels[channelIndex].dataType == FLOAT_){
         for(int i = 0; i < dataSize/4; i++){
           channels[channelIndex].float_values[i] = getSVFloat(asdu, i*4);
+            if(plot_sampling && i == advancedMenuOp){
+              plot_arr_float[plot_count] = channels[channelIndex].float_values[i] ;
+              plot_count++;
+              if(plot_count >= PLOT_SAMPLE_SIZE){
+                plot_sampling = false;
+                plot_count = 0;
+              }
+            }
         }
       } else {
           for(int i = 0; i < dataSize/4; i++){
             if(channels[channelIndex].int_values.size() <= i)
               channels[channelIndex].int_values.push_back(getSVInt(asdu, i*4));
-            else channels[channelIndex].int_values[i] = getSVInt(asdu, i*4);
+            else {
+              channels[channelIndex].int_values[i] = getSVInt(asdu, i*4);
+              if(plot_sampling && i == advancedMenuOp){
+                plot_arr_int[plot_count] = channels[channelIndex].int_values[i] ;
+                plot_count++;
+                if(plot_count >= PLOT_SAMPLE_SIZE){
+                  plot_sampling = false;
+                  plot_count = 0;
+                }
+              }
+            }
           }
         }
       }
