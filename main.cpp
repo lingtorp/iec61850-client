@@ -38,6 +38,10 @@
 #include <math.h>
 #include <iomanip>
 
+#ifdef __LINUX__
+#include <ifaddrs.h>
+#endif
+
 using namespace std;
 
 
@@ -66,6 +70,7 @@ static vector<sv_channel> channels;
 static bool advanced = false;
 static sv_channel *channel_advanced;
 static int advancedMenuOp = 0;
+static string interface = "enp0s3";
 
 
 // test
@@ -104,12 +109,37 @@ static void addChannelSim(){
   channels.push_back(sv);
 }
 
+/** Find all the network interface names (platform specifics) */
+vector<string> find_network_interface_names() {
+  vector<string> network_interfaces;
+#ifdef __LINUX__
+  struct ifaddrs* addrs, *tmp;
+
+  getifaddrs(&addrs);
+  tmp = addrs;
+
+  while(tmp) {
+      if (tmp->ifa_addr && tmp->ifa_addr->sa_family == AF_PACKET) {
+          network_interfaces.push_back(string(tmp->ifa_name));
+      }
+      tmp = tmp->ifa_next;
+  }
+
+  freeifaddrs(addrs);
+#elif
+  // FIXME: Windows and other platforms are unsupported
+  exit(1);
+#endif
+
+  return network_interfaces;
+}
+
 
 int main(int argc, char** argv) {
   gui_init();
   sv_client_init();
-
   addChannelSim();
+
   while(running) {
     /* Input */
     SDL_Event evt;
@@ -184,8 +214,12 @@ int main(int argc, char** argv) {
           clearFloatSample();
         }
       } else {
+
+
       nk_layout_row_dynamic(ctx,10,1);
       nk_label(ctx, "---------- CHANNELS ----------", NK_TEXT_CENTERED);
+      nk_layout_row_dynamic(ctx,10,1);
+      nk_label(ctx, ("Using interface: " + interface).c_str(), NK_TEXT_CENTERED);
 
       for(int i = 0; i < channels.size();i++){
         int op = channels[i].dataType;
@@ -425,8 +459,8 @@ int main(int argc, char** argv) {
     // SV client
     receiver = SVReceiver_create();
 
-    printf("Using interface enp0s3 ");
-    SVReceiver_setInterfaceId(receiver, "enp0s3");
+    cout<<("Using interface " + interface)<<endl;
+    SVReceiver_setInterfaceId(receiver, interface.c_str());
 
     /* Create a subscriber listening to SV messages with APPID 4000h */
     SVSubscriber subscriber = SVSubscriber_create(NULL, 0x4000);
