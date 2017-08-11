@@ -245,19 +245,19 @@ int main(int argc, char** argv) {
   }
 
   static float rms_int(){
-    float sum = 0;
+    long sum = 0;
     for(int i = 0; i < PLOT_SAMPLE_SIZE; i++){
       sum += plot_arr_int[i] * plot_arr_int[i];
     }
-    return sqrt(sum/PLOT_SAMPLE_SIZE);
+    return sqrt(sum/(float)PLOT_SAMPLE_SIZE);
   }
 
   static float rms_float(){
-    long sum = 0;
+    float sum = 0;
     for(int i = 0; i < PLOT_SAMPLE_SIZE; i++){
       sum += plot_arr_float[i] * plot_arr_float[i];
     }
-    return sqrt(sum/(float)PLOT_SAMPLE_SIZE);
+    return sqrt(sum/PLOT_SAMPLE_SIZE);
   }
 
   static void cleanup(){
