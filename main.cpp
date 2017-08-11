@@ -309,8 +309,8 @@ int main(int argc, char** argv) {
   }
 
   /*
-  * Calculates and returns RMS (Root Mean Square)
-  *
+   * Calculates and returns RMS (Root Mean Square) for int sv.
+   *
   */
   static float rms_int(){
     long sum = 0;
@@ -320,6 +320,10 @@ int main(int argc, char** argv) {
     return sqrt(sum/(float)PLOT_SAMPLE_SIZE);
   }
 
+  /*
+   * Calculates and returns RMS (Root Mean Square) for float sv.
+   *
+  */
   static float rms_float(){
     float sum = 0;
     for(int i = 0; i < PLOT_SAMPLE_SIZE; i++){
@@ -328,49 +332,72 @@ int main(int argc, char** argv) {
     return sqrt(sum/PLOT_SAMPLE_SIZE);
   }
 
+  /*
+   * Destroys the client reviever and terminates program.
+   *
+  */
   static void cleanup(){
     /* Stop listening to SV messages */
     SVReceiver_stop(receiver);
 
     /* Cleanup and free resources */
     SVReceiver_destroy(receiver);
-
     running = false;
   }
 
+  /*
+   * Converts int to string and returns it.
+   *
+  */
   static string intToString(int number){
     stringstream ss;
     ss << number;
     return ss.str();
   }
 
+  /*
+   * Converts float to string and returns it.
+   *
+  */
   static string floatToString(float number){
     stringstream ss;
     ss <<fixed<<setprecision(4)<< number;
     return ss.str();
   }
 
+  /*
+   * Make empty row of height on gui window.
+   *
+  */
   static void leaveEmptySpace(int height){
     nk_layout_row_dynamic(ctx,height,1);
     nk_label(ctx,"",NK_TEXT_LEFT);
   }
 
+  /*
+   * Clears the plot_arr_int array.
+   *
+  */
   static void clearIntSample(){
     for(int i = 0; i < PLOT_SAMPLE_SIZE; i++){
       plot_arr_int[i] = 0;
     }
   }
 
+  /*
+   * Clears the plot_arr_float array.
+   *
+  */
   static void clearFloatSample(){
     for(int i = 0; i < PLOT_SAMPLE_SIZE; i++){
       plot_arr_float[i] = 0;
     }
   }
 
-
   /*
    * Search the vector channels for a channel with name.
    * Return its index if channel is found, -1 otherwise.
+   *
   */
   static int fingChannelByName(const char* name){
     for(int i = 0; i < channels.size();i++){
@@ -386,6 +413,7 @@ int main(int argc, char** argv) {
 
   /*
    * Read and return float from ethernet.
+   *
   */
   static float getSVFloat(SVClientASDU asdu, int pos){
       return SVClientASDU_getFLOAT32(asdu, pos);
@@ -393,21 +421,22 @@ int main(int argc, char** argv) {
 
   /*
    * Read and return int from ethernet.
+   *
   */
   static int getSVInt(SVClientASDU asdu,int pos){
       return SVClientASDU_getINT32(asdu, pos);
   }
 
-  /* Callback handler for received SV messages */
+  /*
+   * Callback handler for received SV messages
+   *
+  */
   static void svUpdateListener (SVSubscriber subscriber, void* parameter, SVClientASDU asdu) {
-    //printf("svUpdateListener called\n");
 
     const char* svID = SVClientASDU_getSvId(asdu);
-    //if (svID != NULL)
-    //cout<<svID<<endl;
     int channelIndex = fingChannelByName(svID);
     int dataSize = SVClientASDU_getDataSize(asdu);
-    //cout<<dataSize<<endl;
+    /* Makes a new channel if no channel with same name is present */
     if(channelIndex == -1){
       sv_channel newChannel;
       newChannel.name = svID;
@@ -453,6 +482,7 @@ int main(int argc, char** argv) {
 
   /*
    * Initilize gui window.
+   *
   */
   static void gui_init(){
     /* Platform */
@@ -513,7 +543,11 @@ int main(int argc, char** argv) {
     signal(SIGINT, sigint_handler);
   }
 
-
+  /*
+   * Fills the array[] cyclically with the values from plot_arr_float.
+   * Uses readPointer to simulate array translation one spot to the left.
+   *
+  */
   static void getFloatArray(float array[]){
     int p = readPointer;
     for(int i = 0; i < PLOT_SAMPLE_SIZE; i++){
@@ -522,6 +556,11 @@ int main(int argc, char** argv) {
     }
   }
 
+  /*
+   * Fills the array[] cyclically with the values from plot_arr_int.
+   * Uses readPointer to simulate array translation one spot to the left.
+   *
+  */
   static void getIntArray(float array[]){
     int p = readPointer;
     for(int i = 0; i < PLOT_SAMPLE_SIZE; i++){
@@ -530,7 +569,10 @@ int main(int argc, char** argv) {
     }
   }
 
-  /** Find all the network interface names (platform specifics) */
+  /*
+   * Find all the network interface names (platform specifics)
+   *
+   */
   static vector<string> find_network_interface_names() {
     vector<string> network_interfaces;
   #ifdef __LINUX__
