@@ -1,7 +1,19 @@
 # IEC61850-Client
 
+![User interface #1](Images/normal.png)
+![User interface #2](Images/advanced.png)
+
 ## How to use
 
+The program displays all the IEC61850 channels available of the chosen interface.
+New channels are automatically added and displayed. If one of channels stops broadcasting the last
+received value vill be shown. After clicking the refresh button only active channels will be shown.
+
+### Plotting
+
+In order to plot the values received mark the wanted channel and click the button "Advanced".
+Additional options as plotting and RMS vill be shown. Plot button have two options: "Start" and "Stop".
+When plot is enabled graph will be updated continuously and RMS value will be calculated.
 
 ## Building
 ### Dependencies
