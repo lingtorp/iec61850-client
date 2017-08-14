@@ -1,5 +1,8 @@
 # IEC61850-Client
 
+![User interface #1](Images/normal.png)
+![User interface #2](Images/advanced.png)
+
 ## How to use
 
 The program displays all the IEC61850 channels available of the chosen interface.
