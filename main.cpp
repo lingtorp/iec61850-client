@@ -143,7 +143,7 @@ int main(int argc, char **argv) {
     nk_input_end(ctx);
 
     /* GUI */
-    if (nk_begin(ctx, "Sample Values Client", nk_rect(0, 0, 800, 600),
+    if (nk_begin(ctx, "IEC61850-Client", nk_rect(0, 0, 800, 600),
                  NK_WINDOW_BORDER | NK_WINDOW_SCALABLE | NK_WINDOW_TITLE)) {
       /* Display advanced menu if it is choosen */
       if (advanced) {
