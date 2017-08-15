@@ -36,6 +36,7 @@
 #include <sstream>
 #include <math.h>
 #include <iomanip>
+#include "filesystem.hpp"
 
 #ifdef __LINUX__
 #include <ifaddrs.h>

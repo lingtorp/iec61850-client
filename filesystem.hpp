@@ -19,8 +19,6 @@ namespace FS {
     #ifdef __LINUX__
       std::ifstream file(file_path);
 
-      if (!file) { std::cerr << "Failure 1." << std::endl; }
-
       for (auto &value : values) {
         file << value.value << "," << value.timestamp << ";";
       }
