@@ -17,18 +17,12 @@ namespace FS {
   template<typename T>
   bool save_data(std::vector<Measurement<T>> &values, std::string file_path) {
     #ifdef __LINUX__
-      int file = open(file_path.c_str(), O_CREAT|O_WRONLY|O_TRUNC);
-      if (file < 0) {
-        std::cerr << strerror(errno) << std::endl;
-        return false;
-      }
+      std::ifstream file(file_path);
+
+      if (!file) { std::cerr << "Failure 1." << std::endl; }
 
       for (auto &value : values) {
-        int stat = fprintf(file, "%f, %u;", value.value, value.timestamp);
-        if (stat < 0) {
-          std::cerr << strerror(errno) << std::endl;
-          return false;
-        }
+        file << value.value << "," << value.timestamp << ";";
       }
 
       return true;
