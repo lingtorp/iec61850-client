@@ -2,7 +2,7 @@
 #define _FILESYSTEM_HPP_
 
 #include "measurement.hpp"
-#include <fstream>      
+#include <fstream>
 
 #ifdef __LINUX__
   #include <sys/types.h>
@@ -21,7 +21,7 @@ namespace FS {
       std::ofstream file(file_path);
 
       for (auto &value : values) {
-        file << value.value << "," << value.timestamp << ";";
+        file << value.value << ";" << value.timestamp << std::endl;
       }
 
       return true;
