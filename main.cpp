@@ -79,7 +79,7 @@ bool advanced = false;
 /** Global varible hols channel that is in advanced menu */
 sv_channel *channel_advanced;
 /** Global variable decides which value option will be choosen */
-int advanced_menu_opt = 0;
+uint64_t advanced_menu_opt = 0;
 /** Default interface name for Ubuntu running on VM VirtualBox */
 string interface = "lo";
 /** Global array holds float sv for plot */
@@ -188,7 +188,7 @@ int main(int argc, char **argv) {
 
           leave_empty_space(30);
 
-          int opts_count;
+          uint64_t opts_count;
           if (channel_advanced->dataType == FLOAT_)
             opts_count = channel_advanced->float_values.size();
           else
@@ -473,21 +473,21 @@ void svUpdateListener(SVSubscriber subscriber, void *parameter, SVClientASDU asd
     } else getMeasurementSample(asdu);
   } else {
   int channelIndex = find_channel_by_name(svID);
-  int dataSize = SVClientASDU_getDataSize(asdu);
+  uint64_t data_size = SVClientASDU_getDataSize(asdu);
   /* Makes a new channel if no channel with same name is present */
   if (channelIndex == -1) {
     sv_channel newChannel;
     newChannel.name = svID;
-    for (size_t i = 0; i < dataSize / 4; i++) {
+    for (size_t i = 0; i < data_size / 4; i++) {
       newChannel.float_values.push_back(get_sv_float(asdu, i * 4));
     }
-    newChannel.int_values.reserve(dataSize / 4);
+    newChannel.int_values.reserve(data_size / 4);
     newChannel.dataType = FLOAT_;
     newChannel.visible = false;
     channels.push_back(newChannel);
   } else {
       if (channels[channelIndex].dataType == FLOAT_) {
-        for (size_t i = 0; i < dataSize / 4; i++) {
+        for (size_t i = 0; i < data_size / 4; i++) {
           channels[channelIndex].float_values[i] = get_sv_float(asdu, i * 4);
           if (plot_sampling && i == advanced_menu_opt && strcmp(channels[channelIndex].name, channel_advanced->name) == 0) {
             plot_arr_float[plot_count] = channels[channelIndex].float_values[i];
@@ -499,7 +499,7 @@ void svUpdateListener(SVSubscriber subscriber, void *parameter, SVClientASDU asd
           }
         }
       } else {
-        for (size_t i = 0; i < dataSize / 4; i++) {
+        for (size_t i = 0; i < data_size / 4; i++) {
           if (channels[channelIndex].int_values.size() <= i)
             channels[channelIndex].int_values.push_back(get_sv_int(asdu, i * 4));
           else {
