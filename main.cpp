@@ -88,8 +88,8 @@ static int readPointer = 0;
 static bool plot_sampling = false;
 
 ////////////////////////////////
-//// Functions declaration ////
-//////////////////////////////
+//// Functions declaration /////
+////////////////////////////////
 static void cleanup();
 static void sv_client_init();
 static int fingChannelByName(const char *name);
