@@ -11,7 +11,7 @@ include $(LIBIEC_HOME)/make/stack_includes.mk
 all:	$(PROJECT_BINARY_NAME)
 
 include $(LIBIEC_HOME)/make/common_targets.mk
-CFLAGS+= -Wall -O3
+CFLAGS+= -Wall -O3 -std=c++11
 $(PROJECT_BINARY_NAME):	$(PROJECT_SOURCES) $(LIB_NAME)
 	$(CXX) $(CFLAGS) $(LDFLAGS) -o $(PROJECT_BINARY_NAME) $(PROJECT_SOURCES) $(INCLUDES) $(LIB_NAME) $(LDLIBS) -lSDL2main -lSDL2 -lm -lGLEW -lGL
 
