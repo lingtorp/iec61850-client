@@ -85,9 +85,9 @@ float plot_arr_float[PLOT_SAMPLE_SIZE];
 /** Global array holds int sv for plot */
 float plot_arr_int[PLOT_SAMPLE_SIZE];
 /** Global varialbe hold position for plot_arr input */
-int plot_count = 0;
+uint64_t plot_count = 0;
 /** Global variable hold position for plot_arr read */
-int readPointer = 0;
+uint64_t readPointer = 0;
 /** Global varialbe decides if plot values will be collected */
 bool plot_sampling = false;
 /** TODO */
