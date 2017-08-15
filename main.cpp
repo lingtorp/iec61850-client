@@ -166,7 +166,6 @@ int main(int argc, char **argv) {
       /* Display advanced menu if it is choosen */
       if(!measuring_samples) {
         if (advanced) {
-
           nk_layout_row_dynamic(ctx, 10, 1);
           nk_label(ctx, "---------- ADVANCED ----------", NK_TEXT_CENTERED);
 
@@ -343,7 +342,6 @@ int main(int argc, char **argv) {
     }
     nk_end(ctx);
     /* Draw */
-
     nk_sdl_render(NK_ANTI_ALIASING_ON, MAX_VERTEX_MEMORY, MAX_ELEMENT_MEMORY);
 
     SDL_GL_SwapWindow(win);
@@ -354,7 +352,6 @@ int main(int argc, char **argv) {
 
 /*
  * Calculates and returns RMS (Root Mean Square) for int sv.
- *
 */
 static float rms_int() {
   long sum = 0;
@@ -366,7 +363,6 @@ static float rms_int() {
 
 /*
  * Calculates and returns RMS (Root Mean Square) for float sv.
- *
 */
 static float rms_float() {
   float sum = 0;
@@ -378,7 +374,6 @@ static float rms_float() {
 
 /*
  * Destroys the client reviever and terminates program.
- *
 */
 static void cleanup() {
   /* Stop listening to SV messages */
@@ -391,7 +386,6 @@ static void cleanup() {
 
 /*
  * Converts int to string and returns it.
- *
 */
 static string intToString(int number) {
   stringstream ss;
@@ -401,7 +395,6 @@ static string intToString(int number) {
 
 /*
  * Converts float to string and returns it.
- *
 */
 static string floatToString(float number) {
   stringstream ss;
@@ -411,7 +404,6 @@ static string floatToString(float number) {
 
 /*
  * Make empty row of height on gui window.
- *
 */
 static void leaveEmptySpace(int height) {
   nk_layout_row_dynamic(ctx, height, 1);
@@ -420,7 +412,6 @@ static void leaveEmptySpace(int height) {
 
 /*
  * Clears the plot_arr_int array.
- *
 */
 static void clearIntSample() {
   for (int i = 0; i < PLOT_SAMPLE_SIZE; i++) {
@@ -430,7 +421,6 @@ static void clearIntSample() {
 
 /*
  * Clears the plot_arr_float array.
- *
 */
 static void clearFloatSample() {
   for (int i = 0; i < PLOT_SAMPLE_SIZE; i++) {
@@ -441,7 +431,6 @@ static void clearFloatSample() {
 /*
  * Search the vector channels for a channel with name.
  * Return its index if channel is found, -1 otherwise.
- *
 */
 static int fingChannelByName(const char *name) {
   for (int i = 0; i < channels.size(); i++) {
@@ -455,7 +444,6 @@ static void sigint_handler(int signalId) { running = 0; }
 
 /*
  * Read and return float from ethernet.
- *
 */
 static float getSVFloat(SVClientASDU asdu, int pos) {
   return SVClientASDU_getFLOAT32(asdu, pos);
@@ -463,13 +451,10 @@ static float getSVFloat(SVClientASDU asdu, int pos) {
 
 /*
  * Read and return int from ethernet.
- *
 */
 static int getSVInt(SVClientASDU asdu, int pos) {
   return SVClientASDU_getINT32(asdu, pos);
 }
-
-
 
 static int getMeasurementSample(SVClientASDU asdu){
   Measurement<float> m;
@@ -481,7 +466,6 @@ static int getMeasurementSample(SVClientASDU asdu){
 
 /*
  * Callback handler for received SV messages
- *
 */
 static void svUpdateListener(SVSubscriber subscriber, void *parameter, SVClientASDU asdu) {
 
@@ -547,7 +531,6 @@ static void svUpdateListener(SVSubscriber subscriber, void *parameter, SVClientA
 
 /*
  * Initilize gui window.
- *
 */
 static void gui_init() {
   /* Platform */
@@ -614,7 +597,6 @@ static void sv_client_init() {
 /*
  * Fills the array[] cyclically with the values from plot_arr_float.
  * Uses readPointer to simulate array translation one spot to the left.
- *
 */
 static void getFloatArray(float array[]) {
   int p = readPointer;
@@ -627,7 +609,6 @@ static void getFloatArray(float array[]) {
 /*
  * Fills the array[] cyclically with the values from plot_arr_int.
  * Uses readPointer to simulate array translation one spot to the left.
- *
 */
 static void getIntArray(float array[]) {
   int p = readPointer;
@@ -639,7 +620,6 @@ static void getIntArray(float array[]) {
 
 /*
  * Find all the network interface names (platform specifics)
- *
  */
 static vector<string> find_network_interface_names() {
   vector<string> network_interfaces;
