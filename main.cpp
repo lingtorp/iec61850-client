@@ -41,6 +41,7 @@
 #include "measurement.hpp"
 #include <ctime>
 #include <time.h>
+#include "filesystem.hpp"
 
 #ifdef __LINUX__
 #include <ifaddrs.h>
@@ -92,7 +93,8 @@ static int readPointer = 0;
 /** Global varialbe decides if plot values will be collected */
 static bool plot_sampling = false;
 
-static Measurement<float> measurements[MEASUREMENT_SAMPLE_SIZE];
+//static Measurement<float> measurements[MEASUREMENT_SAMPLE_SIZE];
+static vector<Measurement<float>> measurements(MEASUREMENT_SAMPLE_SIZE);
 
 static bool measuring_samples = false;
 
@@ -488,11 +490,13 @@ static void svUpdateListener(SVSubscriber subscriber, void *parameter, SVClientA
     if(measuring_samples_counter >= MEASUREMENT_SAMPLE_SIZE){
       measuring_samples = false;
       measuring_samples_counter = 0;
+      FS::save_data(measurements,"tempFile");
+      /*
       for(int i = 0; i < MEASUREMENT_SAMPLE_SIZE; i++){
         cout<<measurements[i].value;
         cout<<" ";
         cout<<fixed<<setprecision(10)<<(float)measurements[i].timestamp/CLOCKS_PER_SEC<<endl;
-      }
+      } */
     } else getMeasurementSample(asdu);
   } else {
   int channelIndex = fingChannelByName(svID);
