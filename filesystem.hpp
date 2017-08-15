@@ -17,17 +17,10 @@
 namespace FS {
   template<typename T>
   bool save_data(std::vector<Measurement<T>> &values, std::string file_path) {
-    #ifdef __LINUX__
-      std::ofstream file(file_path);
-
-      for (auto &value : values) {
-        file << value.value << ";" << value.timestamp << std::endl;
-      }
-
-      return true;
-    #elif
-      #error OS not supported
-    #endif
+    std::ofstream file(file_path);
+    for (auto &value : values) {
+      file << value.value << ";" << value.timestamp << std::endl;
+    }
   }
 }
 

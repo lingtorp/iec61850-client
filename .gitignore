@@ -7,6 +7,8 @@
 *.cache
 *.pdb
 *.tl
+*.txt
+*.csv
 Makefile-sdl2
 main-sdl2.c
 main
