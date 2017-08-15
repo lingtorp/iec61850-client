@@ -101,7 +101,6 @@ sv_channel *channel_measurment;
 /** TODO */
  clock_t ticks;
 
-
 ////////////////////////////////
 //// Functions declaration ////
 //////////////////////////////
