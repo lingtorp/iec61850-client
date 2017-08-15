@@ -17,13 +17,11 @@ namespace FS {
   template<typename T>
   bool save_data(std::vector<Measurement<T>> &values, std::string file_path) {
     #ifdef __LINUX__
-      std::ifstream file(file_path);
+      std::ofstream file(file_path);
 
       for (auto &value : values) {
         file << value.value << "," << value.timestamp << ";";
       }
-
-      file.close();
 
       return true;
     #elif
