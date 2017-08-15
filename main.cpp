@@ -109,23 +109,23 @@ static clock_t ticks;
 //////////////////////////////
 static void cleanup();
 static void sv_client_init();
-static int fingChannelByName(const char *name);
+static int find_channel_by_name(const char *name);
 static void sigint_handler(int signalId);
-static float getSVFloat(SVClientASDU asdu);
-static int getSVInt(SVClientASDU asdu);
+static float get_sv_float(SVClientASDU asdu);
+static int get_sv_int(SVClientASDU asdu);
 static void gui_init();
-static string intToString(int number);
-static void leaveEmptySpace(int height);
-static void clearIntSample();
-static void clearFloatSample();
+static string int_to_string(int number);
+static void leave_empty_space(int height);
+static void clear_int_sample();
+static void clear_float_sample();
 static float rms_float();
 static float rms_int();
-static string floatToString(float number);
+static string float_to_string(float number);
 static vector<string> find_network_interface_names();
-static void getFloatArray(float array[]);
-static void getIntArray(float array[]);
+static void get_float_array(float array[]);
+static void get_int_array(float array[]);
 
-static void addChannelSim() {
+static void add_channel_sim() {
   sv_channel sv;
   sv.name = "random";
   sv.dataType = FLOAT_;
@@ -182,21 +182,21 @@ int main(int argc, char **argv) {
           /* Display each channel with its number and values */
           if (channel_advanced->dataType == FLOAT_) {
             for (int j = 0; j < channel_advanced->float_values.size(); j++) {
-              nk_property_float(ctx, ("Value " + intToString(j + 1)).c_str(),
+              nk_property_float(ctx, ("Value " + int_to_string(j + 1)).c_str(),
                                 channel_advanced->float_values[j],
                                 &(channel_advanced->float_values[j]),
                                 channel_advanced->float_values[j], 10, 1);
             }
           } else {
             for (int j = 0; j < channel_advanced->int_values.size(); j++) {
-              nk_property_int(ctx, ("Value " + intToString(j + 1)).c_str(),
+              nk_property_int(ctx, ("Value " + int_to_string(j + 1)).c_str(),
                               channel_advanced->int_values[j],
                               &(channel_advanced->int_values[j]),
                               channel_advanced->int_values[j], 10, 1);
             }
           }
 
-          leaveEmptySpace(30);
+          leave_empty_space(30);
 
           int optionsCount;
           if (channel_advanced->dataType == FLOAT_)
@@ -217,7 +217,7 @@ int main(int argc, char **argv) {
 
           /* Displey all channels as options to choose between for plot */
           for (int s = 0; s < optionsCount; s++) {
-            if (nk_option_label(ctx, ("Value " + intToString(s + 1)).c_str(),
+            if (nk_option_label(ctx, ("Value " + int_to_string(s + 1)).c_str(),
                                 advancedMenuOp == s))
               advancedMenuOp = s;
           }
@@ -226,11 +226,11 @@ int main(int argc, char **argv) {
           nk_layout_row_static(ctx, 200, 800, 1);
           if (channel_advanced->dataType == FLOAT_) {
             float arr[PLOT_SAMPLE_SIZE];
-            getFloatArray(arr);
+            get_float_array(arr);
             nk_plot(ctx, NK_CHART_LINES, arr, PLOT_SAMPLE_SIZE, 0.1);
           } else {
             float arr[PLOT_SAMPLE_SIZE];
-            getIntArray(arr);
+            get_int_array(arr);
             nk_plot(ctx, NK_CHART_LINES, arr, PLOT_SAMPLE_SIZE, 0.1);
           }
 
@@ -238,22 +238,22 @@ int main(int argc, char **argv) {
           if (plot_sampling) {
             nk_layout_row_dynamic(ctx, 30, 1);
             if (channel_advanced->dataType == FLOAT_)
-              nk_label(ctx, ("RMS Value:  " + floatToString(rms_float())).c_str(),
+              nk_label(ctx, ("RMS Value:  " + float_to_string(rms_float())).c_str(),
                        NK_TEXT_LEFT);
             else
-              nk_label(ctx, ("RMS Value:  " + floatToString(rms_int())).c_str(),
+              nk_label(ctx, ("RMS Value:  " + float_to_string(rms_int())).c_str(),
                        NK_TEXT_LEFT);
           }
 
-          leaveEmptySpace(50);
+          leave_empty_space(50);
 
           /* Display back button */
           nk_layout_row_static(ctx, 30, 80, 1);
           if (nk_button_label(ctx, "BACK")) {
             advanced = false;
             plot_sampling = false;
-            clearIntSample();
-            clearFloatSample();
+            clear_int_sample();
+            clear_float_sample();
           }
         }
         /* If advanced menu if turned off dispay regural menu */
@@ -301,14 +301,14 @@ int main(int argc, char **argv) {
             if (channels[i].visible) {
               if (channels[i].dataType == FLOAT_) {
                 for (int j = 0; j < channels[i].float_values.size(); j++) {
-                  nk_property_float(ctx, ("Value " + intToString(j + 1)).c_str(),
+                  nk_property_float(ctx, ("Value " + int_to_string(j + 1)).c_str(),
                                     channels[i].float_values[j],
                                     &channels[i].float_values[j],
                                     channels[i].float_values[j], 10, 1);
                 }
               } else {
                 for (int j = 0; j < channels[i].int_values.size(); j++) {
-                  nk_property_int(ctx, ("Value " + intToString(j + 1)).c_str(),
+                  nk_property_int(ctx, ("Value " + int_to_string(j + 1)).c_str(),
                                   channels[i].int_values[j],
                                   &channels[i].int_values[j],
                                   channels[i].int_values[j], 10, 1);
@@ -386,7 +386,7 @@ static void cleanup() {
 /*
  * Converts int to string and returns it.
 */
-static string intToString(int number) {
+static string int_to_string(int number) {
   stringstream ss;
   ss << number;
   return ss.str();
@@ -395,7 +395,7 @@ static string intToString(int number) {
 /*
  * Converts float to string and returns it.
 */
-static string floatToString(float number) {
+static string float_to_string(float number) {
   stringstream ss;
   ss << fixed << setprecision(4) << number;
   return ss.str();
@@ -404,7 +404,7 @@ static string floatToString(float number) {
 /*
  * Make empty row of height on gui window.
 */
-static void leaveEmptySpace(int height) {
+static void leave_empty_space(int height) {
   nk_layout_row_dynamic(ctx, height, 1);
   nk_label(ctx, "", NK_TEXT_LEFT);
 }
@@ -412,7 +412,7 @@ static void leaveEmptySpace(int height) {
 /*
  * Clears the plot_arr_int array.
 */
-static void clearIntSample() {
+static void clear_int_sample() {
   for (int i = 0; i < PLOT_SAMPLE_SIZE; i++) {
     plot_arr_int[i] = 0;
   }
@@ -421,7 +421,7 @@ static void clearIntSample() {
 /*
  * Clears the plot_arr_float array.
 */
-static void clearFloatSample() {
+static void clear_float_sample() {
   for (int i = 0; i < PLOT_SAMPLE_SIZE; i++) {
     plot_arr_float[i] = 0;
   }
@@ -431,7 +431,7 @@ static void clearFloatSample() {
  * Search the vector channels for a channel with name.
  * Return its index if channel is found, -1 otherwise.
 */
-static int fingChannelByName(const char *name) {
+static int find_channel_by_name(const char *name) {
   for (int i = 0; i < channels.size(); i++) {
     if (strcmp(name, channels[i].name) == 0)
       return i;
@@ -444,14 +444,14 @@ static void sigint_handler(int signalId) { running = 0; }
 /*
  * Read and return float from ethernet.
 */
-static float getSVFloat(SVClientASDU asdu, int pos) {
+static float get_sv_float(SVClientASDU asdu, int pos) {
   return SVClientASDU_getFLOAT32(asdu, pos);
 }
 
 /*
  * Read and return int from ethernet.
 */
-static int getSVInt(SVClientASDU asdu, int pos) {
+static int get_sv_int(SVClientASDU asdu, int pos) {
   return SVClientASDU_getINT32(asdu, pos);
 }
 
@@ -482,14 +482,14 @@ static void svUpdateListener(SVSubscriber subscriber, void *parameter, SVClientA
       } */
     } else getMeasurementSample(asdu);
   } else {
-  int channelIndex = fingChannelByName(svID);
+  int channelIndex = find_channel_by_name(svID);
   int dataSize = SVClientASDU_getDataSize(asdu);
   /* Makes a new channel if no channel with same name is present */
   if (channelIndex == -1) {
     sv_channel newChannel;
     newChannel.name = svID;
     for (int i = 0; i < dataSize / 4; i++) {
-      newChannel.float_values.push_back(getSVFloat(asdu, i * 4));
+      newChannel.float_values.push_back(get_sv_float(asdu, i * 4));
     }
     newChannel.int_values.reserve(dataSize / 4);
     newChannel.dataType = FLOAT_;
@@ -498,7 +498,7 @@ static void svUpdateListener(SVSubscriber subscriber, void *parameter, SVClientA
   } else {
       if (channels[channelIndex].dataType == FLOAT_) {
         for (int i = 0; i < dataSize / 4; i++) {
-          channels[channelIndex].float_values[i] = getSVFloat(asdu, i * 4);
+          channels[channelIndex].float_values[i] = get_sv_float(asdu, i * 4);
           if (plot_sampling && i == advancedMenuOp && strcmp(channels[channelIndex].name, channel_advanced->name) == 0) {
             plot_arr_float[plot_count] = channels[channelIndex].float_values[i];
             plot_count++;
@@ -511,9 +511,9 @@ static void svUpdateListener(SVSubscriber subscriber, void *parameter, SVClientA
       } else {
         for (int i = 0; i < dataSize / 4; i++) {
           if (channels[channelIndex].int_values.size() <= i)
-            channels[channelIndex].int_values.push_back(getSVInt(asdu, i * 4));
+            channels[channelIndex].int_values.push_back(get_sv_int(asdu, i * 4));
           else {
-            channels[channelIndex].int_values[i] = getSVInt(asdu, i * 4);
+            channels[channelIndex].int_values[i] = get_sv_int(asdu, i * 4);
             if (plot_sampling && i == advancedMenuOp && strcmp(channels[channelIndex].name, channel_advanced->name) == 0) {
               plot_arr_int[plot_count] = channels[channelIndex].int_values[i];
               plot_count++;
@@ -597,7 +597,7 @@ static void sv_client_init() {
  * Fills the array[] cyclically with the values from plot_arr_float.
  * Uses readPointer to simulate array translation one spot to the left.
 */
-static void getFloatArray(float array[]) {
+static void get_float_array(float array[]) {
   int p = readPointer;
   for (int i = 0; i < PLOT_SAMPLE_SIZE; i++) {
     array[i] = plot_arr_float[p % PLOT_SAMPLE_SIZE];
@@ -609,7 +609,7 @@ static void getFloatArray(float array[]) {
  * Fills the array[] cyclically with the values from plot_arr_int.
  * Uses readPointer to simulate array translation one spot to the left.
 */
-static void getIntArray(float array[]) {
+static void get_int_array(float array[]) {
   int p = readPointer;
   for (int i = 0; i < PLOT_SAMPLE_SIZE; i++) {
     array[i] = plot_arr_int[p % PLOT_SAMPLE_SIZE];
