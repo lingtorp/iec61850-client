@@ -39,6 +39,8 @@
 #include <math.h>
 #include <iomanip>
 #include "measurement.hpp"
+#include <ctime>
+#include <time.h>
 
 #ifdef __LINUX__
 #include <ifaddrs.h>
@@ -97,6 +99,8 @@ static bool measuring_samples = false;
 static int measuring_samples_counter = 0;
 
 static sv_channel *channel_measurment;
+
+static clock_t ticks;
 
 
 ////////////////////////////////
@@ -318,6 +322,7 @@ int main(int argc, char **argv) {
               if(nk_button_label(ctx,"SAMPLE")) {
                 measuring_samples = true;
                 channel_measurment = &channels[i];
+                ticks = clock();
               }
             }
           }
@@ -462,9 +467,12 @@ static int getSVInt(SVClientASDU asdu, int pos) {
   return SVClientASDU_getINT32(asdu, pos);
 }
 
+
+
 static int getMeasurementSample(SVClientASDU asdu){
   Measurement<float> m;
   m.value = SVClientASDU_getFLOAT32(asdu, 0);
+  m.timestamp = clock() - ticks;
   measurements[measuring_samples_counter] = m;
   measuring_samples_counter++;
 }
@@ -480,6 +488,11 @@ static void svUpdateListener(SVSubscriber subscriber, void *parameter, SVClientA
     if(measuring_samples_counter >= MEASUREMENT_SAMPLE_SIZE){
       measuring_samples = false;
       measuring_samples_counter = 0;
+      for(int i = 0; i < MEASUREMENT_SAMPLE_SIZE; i++){
+        cout<<measurements[i].value;
+        cout<<" ";
+        cout<<fixed<<setprecision(10)<<(float)measurements[i].timestamp/CLOCKS_PER_SEC<<endl;
+      }
     } else getMeasurementSample(asdu);
   } else {
   int channelIndex = fingChannelByName(svID);
