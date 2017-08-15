@@ -2,6 +2,7 @@
 #define _FILESYSTEM_HPP_
 
 #include "measurement.hpp"
+#include <fstream>      
 
 #ifdef __LINUX__
   #include <sys/types.h>
