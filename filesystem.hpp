@@ -23,6 +23,8 @@ namespace FS {
         file << value.value << "," << value.timestamp << ";";
       }
 
+      file.close();
+
       return true;
     #elif
       #error OS not supported
