@@ -532,8 +532,6 @@ static void svUpdateListener(SVSubscriber subscriber, void *parameter, SVClientA
  * Initilize gui window.
 */
 static void gui_init() {
-  /* Platform */
-  SDL_GLContext glContext;
   /* SDL setup */
   SDL_SetHint(SDL_HINT_VIDEO_HIGHDPI_DISABLED, "0");
   SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER | SDL_INIT_EVENTS);
@@ -547,7 +545,7 @@ static void gui_init() {
                          SDL_WINDOWPOS_CENTERED, WINDOW_WIDTH, WINDOW_HEIGHT,
                          SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN |
                              SDL_WINDOW_ALLOW_HIGHDPI);
-  glContext = SDL_GL_CreateContext(win);
+  SDL_GL_CreateContext(win);
   SDL_GetWindowSize(win, &win_width, &win_height);
 
   /* OpenGL setup */
@@ -563,8 +561,6 @@ static void gui_init() {
   /* Load Fonts: if none of these are loaded a default font will be used */
   struct nk_font_atlas *atlas;
   nk_sdl_font_stash_begin(&atlas);
-  struct nk_font *roboto = nk_font_atlas_add_from_file(
-      atlas, "../Roboto-Regular.ttf", 16, 0); // Can be safely removed
   nk_sdl_font_stash_end();
 }
 
