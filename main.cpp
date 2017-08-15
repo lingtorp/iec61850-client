@@ -26,6 +26,8 @@
 /** Size of plot sample */
 #define PLOT_SAMPLE_SIZE 100
 
+#define MEASUREMENT_SAMPLE_SIZE 200
+
 #include <signal.h>
 #include <stdio.h>
 #include "hal_thread.h"
@@ -36,6 +38,9 @@
 #include <sstream>
 #include <math.h>
 #include <iomanip>
+#include "measurement.hpp"
+#include <ctime>
+#include <time.h>
 #include "filesystem.hpp"
 
 #ifdef __LINUX__
@@ -88,9 +93,21 @@ static int readPointer = 0;
 /** Global varialbe decides if plot values will be collected */
 static bool plot_sampling = false;
 
+//static Measurement<float> measurements[MEASUREMENT_SAMPLE_SIZE];
+static vector<Measurement<float>> measurements(MEASUREMENT_SAMPLE_SIZE);
+
+static bool measuring_samples = false;
+
+static int measuring_samples_counter = 0;
+
+static sv_channel *channel_measurment;
+
+static clock_t ticks;
+
+
 ////////////////////////////////
-//// Functions declaration /////
-////////////////////////////////
+//// Functions declaration ////
+//////////////////////////////
 static void cleanup();
 static void sv_client_init();
 static int fingChannelByName(const char *name);
@@ -147,173 +164,180 @@ int main(int argc, char **argv) {
     if (nk_begin(ctx, "IEC61850-Client", nk_rect(0, 0, 800, 600),
                  NK_WINDOW_BORDER | NK_WINDOW_SCALABLE | NK_WINDOW_TITLE)) {
       /* Display advanced menu if it is choosen */
-      if (advanced) {
+      if(!measuring_samples) {
+        if (advanced) {
 
-        nk_layout_row_dynamic(ctx, 10, 1);
-        nk_label(ctx, "---------- ADVANCED ----------", NK_TEXT_CENTERED);
+          nk_layout_row_dynamic(ctx, 10, 1);
+          nk_label(ctx, "---------- ADVANCED ----------", NK_TEXT_CENTERED);
 
-        /* Choose between int and float datatype  */
-        int op = channel_advanced->dataType;
-        nk_layout_row_dynamic(ctx, 30, 12);
-        if (nk_option_label(ctx, "float", op == FLOAT_))
-          op = FLOAT_;
-        if (nk_option_label(ctx, "int", op == INT_))
-          op = INT_;
-        channel_advanced->dataType = op;
-        nk_layout_row_dynamic(ctx, 25, 1);
-        nk_button_label(ctx, channel_advanced->name);
-
-        /* Display each channel with its number and values */
-        if (channel_advanced->dataType == FLOAT_) {
-          for (int j = 0; j < channel_advanced->float_values.size(); j++) {
-            nk_property_float(ctx, ("Value " + intToString(j + 1)).c_str(),
-                              channel_advanced->float_values[j],
-                              &(channel_advanced->float_values[j]),
-                              channel_advanced->float_values[j], 10, 1);
-          }
-        } else {
-          for (int j = 0; j < channel_advanced->int_values.size(); j++) {
-            nk_property_int(ctx, ("Value " + intToString(j + 1)).c_str(),
-                            channel_advanced->int_values[j],
-                            &(channel_advanced->int_values[j]),
-                            channel_advanced->int_values[j], 10, 1);
-          }
-        }
-
-        leaveEmptySpace(30);
-
-        int optionsCount;
-        if (channel_advanced->dataType == FLOAT_)
-          optionsCount = channel_advanced->float_values.size();
-        else
-          optionsCount = channel_advanced->int_values.size();
-
-        /* Displey plot button menu */
-        nk_layout_row_static(ctx, 30, 80, optionsCount + 2);
-        if (nk_menu_begin_label(ctx, "PLOT", NK_TEXT_LEFT, nk_vec2(120, 200))) {
-          nk_layout_row_dynamic(ctx, 30, 1);
-          if (nk_menu_item_label(ctx, "START", NK_TEXT_LEFT))
-            plot_sampling = true;
-          if (nk_menu_item_label(ctx, "STOP", NK_TEXT_LEFT))
-            plot_sampling = false;
-          nk_menu_end(ctx);
-        }
-
-        /* Displey all channels as options to choose between for plot */
-        for (int s = 0; s < optionsCount; s++) {
-          if (nk_option_label(ctx, ("Value " + intToString(s + 1)).c_str(),
-                              advancedMenuOp == s))
-            advancedMenuOp = s;
-        }
-
-        /* Plot the graph */
-        nk_layout_row_static(ctx, 200, 800, 1);
-        if (channel_advanced->dataType == FLOAT_) {
-          float arr[PLOT_SAMPLE_SIZE];
-          getFloatArray(arr);
-          nk_plot(ctx, NK_CHART_LINES, arr, PLOT_SAMPLE_SIZE, 0.1);
-        } else {
-          float arr[PLOT_SAMPLE_SIZE];
-          getIntArray(arr);
-          nk_plot(ctx, NK_CHART_LINES, arr, PLOT_SAMPLE_SIZE, 0.1);
-        }
-
-        /* Calculate and displey rms value if plot is on */
-        if (plot_sampling) {
-          nk_layout_row_dynamic(ctx, 30, 1);
-          if (channel_advanced->dataType == FLOAT_)
-            nk_label(ctx, ("RMS Value:  " + floatToString(rms_float())).c_str(),
-                     NK_TEXT_LEFT);
-          else
-            nk_label(ctx, ("RMS Value:  " + floatToString(rms_int())).c_str(),
-                     NK_TEXT_LEFT);
-        }
-
-        leaveEmptySpace(50);
-
-        /* Display back button */
-        nk_layout_row_static(ctx, 30, 80, 1);
-        if (nk_button_label(ctx, "BACK")) {
-          advanced = false;
-          plot_sampling = false;
-          clearIntSample();
-          clearFloatSample();
-        }
-      }
-      /* If advanced menu if turned off dispay regural menu */
-      else {
-        nk_layout_row_dynamic(ctx, 10, 1);
-        nk_label(ctx, "---------- CHANNELS ----------", NK_TEXT_CENTERED);
-        nk_layout_row_dynamic(ctx, 10, 1);
-        nk_label(ctx, ("Using interface: " + interface).c_str(),
-                 NK_TEXT_CENTERED);
-        /* Dispay menu with all available interfaces */
-        vector<string> available_interfaces = find_network_interface_names();
-        nk_layout_row_static(ctx, 30, 150, 1);
-        if (nk_menu_begin_label(ctx, "AVAILABLE INTERFACES", NK_TEXT_LEFT,
-                                nk_vec2(120, 200))) {
-          nk_layout_row_dynamic(ctx, 30, 1);
-          for (int i = 0; i < available_interfaces.size(); i++) {
-            if (nk_menu_item_label(ctx, available_interfaces[i].c_str(),
-                                   NK_TEXT_LEFT)) {
-              /* Re-initialize the client if we choose another interface */
-              interface = available_interfaces[i];
-              SVReceiver_stop(receiver);
-              SVReceiver_destroy(receiver);
-              sv_client_init();
-            }
-          }
-          nk_menu_end(ctx);
-        }
-        /* Display all channels with name and all values */
-        for (int i = 0; i < channels.size(); i++) {
-          int op = channels[i].dataType;
+          /* Choose between int and float datatype  */
+          int op = channel_advanced->dataType;
           nk_layout_row_dynamic(ctx, 30, 12);
           if (nk_option_label(ctx, "float", op == FLOAT_))
             op = FLOAT_;
           if (nk_option_label(ctx, "int", op == INT_))
             op = INT_;
-          channels[i].dataType = op;
-          bool visible = channels[i].visible;
+          channel_advanced->dataType = op;
           nk_layout_row_dynamic(ctx, 25, 1);
-          if (nk_button_label(ctx, channels[i].name)) {
-            if (visible)
-              channels[i].visible = false;
-            else
-              channels[i].visible = true;
+          nk_button_label(ctx, channel_advanced->name);
+
+          /* Display each channel with its number and values */
+          if (channel_advanced->dataType == FLOAT_) {
+            for (int j = 0; j < channel_advanced->float_values.size(); j++) {
+              nk_property_float(ctx, ("Value " + intToString(j + 1)).c_str(),
+                                channel_advanced->float_values[j],
+                                &(channel_advanced->float_values[j]),
+                                channel_advanced->float_values[j], 10, 1);
+            }
+          } else {
+            for (int j = 0; j < channel_advanced->int_values.size(); j++) {
+              nk_property_int(ctx, ("Value " + intToString(j + 1)).c_str(),
+                              channel_advanced->int_values[j],
+                              &(channel_advanced->int_values[j]),
+                              channel_advanced->int_values[j], 10, 1);
+            }
           }
-          if (channels[i].visible) {
-            if (channels[i].dataType == FLOAT_) {
-              for (int j = 0; j < channels[i].float_values.size(); j++) {
-                nk_property_float(ctx, ("Value " + intToString(j + 1)).c_str(),
-                                  channels[i].float_values[j],
-                                  &channels[i].float_values[j],
-                                  channels[i].float_values[j], 10, 1);
-              }
-            } else {
-              for (int j = 0; j < channels[i].int_values.size(); j++) {
-                nk_property_int(ctx, ("Value " + intToString(j + 1)).c_str(),
-                                channels[i].int_values[j],
-                                &channels[i].int_values[j],
-                                channels[i].int_values[j], 10, 1);
-              }
-            }
-            nk_layout_row_static(ctx, 30, 80, 1);
-            if (nk_button_label(ctx, "ADVANCED")) {
-              advanced = true;
-              channel_advanced = &channels[i];
-            }
+
+          leaveEmptySpace(30);
+
+          int optionsCount;
+          if (channel_advanced->dataType == FLOAT_)
+            optionsCount = channel_advanced->float_values.size();
+          else
+            optionsCount = channel_advanced->int_values.size();
+
+          /* Displey plot button menu */
+          nk_layout_row_static(ctx, 30, 80, optionsCount + 2);
+          if (nk_menu_begin_label(ctx, "PLOT", NK_TEXT_LEFT, nk_vec2(120, 200))) {
+            nk_layout_row_dynamic(ctx, 30, 1);
+            if (nk_menu_item_label(ctx, "START", NK_TEXT_LEFT))
+              plot_sampling = true;
+            if (nk_menu_item_label(ctx, "STOP", NK_TEXT_LEFT))
+              plot_sampling = false;
+            nk_menu_end(ctx);
+          }
+
+          /* Displey all channels as options to choose between for plot */
+          for (int s = 0; s < optionsCount; s++) {
+            if (nk_option_label(ctx, ("Value " + intToString(s + 1)).c_str(),
+                                advancedMenuOp == s))
+              advancedMenuOp = s;
+          }
+
+          /* Plot the graph */
+          nk_layout_row_static(ctx, 200, 800, 1);
+          if (channel_advanced->dataType == FLOAT_) {
+            float arr[PLOT_SAMPLE_SIZE];
+            getFloatArray(arr);
+            nk_plot(ctx, NK_CHART_LINES, arr, PLOT_SAMPLE_SIZE, 0.1);
+          } else {
+            float arr[PLOT_SAMPLE_SIZE];
+            getIntArray(arr);
+            nk_plot(ctx, NK_CHART_LINES, arr, PLOT_SAMPLE_SIZE, 0.1);
+          }
+
+          /* Calculate and displey rms value if plot is on */
+          if (plot_sampling) {
+            nk_layout_row_dynamic(ctx, 30, 1);
+            if (channel_advanced->dataType == FLOAT_)
+              nk_label(ctx, ("RMS Value:  " + floatToString(rms_float())).c_str(),
+                       NK_TEXT_LEFT);
+            else
+              nk_label(ctx, ("RMS Value:  " + floatToString(rms_int())).c_str(),
+                       NK_TEXT_LEFT);
+          }
+
+          leaveEmptySpace(50);
+
+          /* Display back button */
+          nk_layout_row_static(ctx, 30, 80, 1);
+          if (nk_button_label(ctx, "BACK")) {
+            advanced = false;
+            plot_sampling = false;
+            clearIntSample();
+            clearFloatSample();
           }
         }
-        if (channels.size() > 0) {
-          nk_layout_row_dynamic(ctx, 15, 1);
-          nk_layout_row_static(ctx, 30, 80, 1);
-          if (nk_button_label(ctx, "REFRESH"))
-            channels.clear();
-        } else {
+        /* If advanced menu if turned off dispay regural menu */
+        else {
           nk_layout_row_dynamic(ctx, 10, 1);
-          nk_label(ctx, "NO AVAILABLE CHANNELS", NK_TEXT_CENTERED);
-          nk_label(ctx, "Please check your connection", NK_TEXT_CENTERED);
+          nk_label(ctx, "---------- CHANNELS ----------", NK_TEXT_CENTERED);
+          nk_layout_row_dynamic(ctx, 10, 1);
+          nk_label(ctx, ("Using interface: " + interface).c_str(),
+                   NK_TEXT_CENTERED);
+          /* Dispay menu with all available interfaces */
+          vector<string> available_interfaces = find_network_interface_names();
+          nk_layout_row_static(ctx, 30, 150, 1);
+          if (nk_menu_begin_label(ctx, "AVAILABLE INTERFACES", NK_TEXT_LEFT,
+                                  nk_vec2(120, 200))) {
+            nk_layout_row_dynamic(ctx, 30, 1);
+            for (int i = 0; i < available_interfaces.size(); i++) {
+              if (nk_menu_item_label(ctx, available_interfaces[i].c_str(),
+                                     NK_TEXT_LEFT)) {
+                /* Re-initialize the client if we choose another interface */
+                interface = available_interfaces[i];
+                SVReceiver_stop(receiver);
+                SVReceiver_destroy(receiver);
+                sv_client_init();
+              }
+            }
+            nk_menu_end(ctx);
+          }
+          /* Display all channels with name and all values */
+          for (int i = 0; i < channels.size(); i++) {
+            int op = channels[i].dataType;
+            nk_layout_row_dynamic(ctx, 30, 12);
+            if (nk_option_label(ctx, "float", op == FLOAT_))
+              op = FLOAT_;
+            if (nk_option_label(ctx, "int", op == INT_))
+              op = INT_;
+            channels[i].dataType = op;
+            bool visible = channels[i].visible;
+            nk_layout_row_dynamic(ctx, 25, 1);
+            if (nk_button_label(ctx, channels[i].name)) {
+              if (visible)
+                channels[i].visible = false;
+              else
+                channels[i].visible = true;
+            }
+            if (channels[i].visible) {
+              if (channels[i].dataType == FLOAT_) {
+                for (int j = 0; j < channels[i].float_values.size(); j++) {
+                  nk_property_float(ctx, ("Value " + intToString(j + 1)).c_str(),
+                                    channels[i].float_values[j],
+                                    &channels[i].float_values[j],
+                                    channels[i].float_values[j], 10, 1);
+                }
+              } else {
+                for (int j = 0; j < channels[i].int_values.size(); j++) {
+                  nk_property_int(ctx, ("Value " + intToString(j + 1)).c_str(),
+                                  channels[i].int_values[j],
+                                  &channels[i].int_values[j],
+                                  channels[i].int_values[j], 10, 1);
+                }
+              }
+              nk_layout_row_static(ctx, 30, 80, 2);
+              if (nk_button_label(ctx, "ADVANCED")) {
+                advanced = true;
+                channel_advanced = &channels[i];
+              }
+              if(nk_button_label(ctx,"SAMPLE")) {
+                measuring_samples = true;
+                channel_measurment = &channels[i];
+                ticks = clock();
+              }
+            }
+          }
+          if (channels.size() > 0) {
+            nk_layout_row_dynamic(ctx, 15, 1);
+            nk_layout_row_static(ctx, 30, 80, 1);
+            if (nk_button_label(ctx, "REFRESH"))
+              channels.clear();
+          } else {
+            nk_layout_row_dynamic(ctx, 10, 1);
+            nk_label(ctx, "NO AVAILABLE CHANNELS", NK_TEXT_CENTERED);
+            nk_label(ctx, "Please check your connection", NK_TEXT_CENTERED);
+          }
         }
       }
     }
@@ -445,14 +469,36 @@ static int getSVInt(SVClientASDU asdu, int pos) {
   return SVClientASDU_getINT32(asdu, pos);
 }
 
+
+
+static int getMeasurementSample(SVClientASDU asdu){
+  Measurement<float> m;
+  m.value = SVClientASDU_getFLOAT32(asdu, 0);
+  m.timestamp = clock() - ticks;
+  measurements[measuring_samples_counter] = m;
+  measuring_samples_counter++;
+}
+
 /*
  * Callback handler for received SV messages
  *
 */
-static void svUpdateListener(SVSubscriber subscriber, void *parameter,
-                             SVClientASDU asdu) {
+static void svUpdateListener(SVSubscriber subscriber, void *parameter, SVClientASDU asdu) {
 
   const char *svID = SVClientASDU_getSvId(asdu);
+  if(measuring_samples && strcmp(channel_measurment->name,svID) == 0){
+    if(measuring_samples_counter >= MEASUREMENT_SAMPLE_SIZE){
+      measuring_samples = false;
+      measuring_samples_counter = 0;
+      FS::save_data(measurements,"tempFile");
+      /*
+      for(int i = 0; i < MEASUREMENT_SAMPLE_SIZE; i++){
+        cout<<measurements[i].value;
+        cout<<" ";
+        cout<<fixed<<setprecision(10)<<(float)measurements[i].timestamp/CLOCKS_PER_SEC<<endl;
+      } */
+    } else getMeasurementSample(asdu);
+  } else {
   int channelIndex = fingChannelByName(svID);
   int dataSize = SVClientASDU_getDataSize(asdu);
   /* Makes a new channel if no channel with same name is present */
@@ -467,29 +513,30 @@ static void svUpdateListener(SVSubscriber subscriber, void *parameter,
     newChannel.visible = false;
     channels.push_back(newChannel);
   } else {
-    if (channels[channelIndex].dataType == FLOAT_) {
-      for (int i = 0; i < dataSize / 4; i++) {
-        channels[channelIndex].float_values[i] = getSVFloat(asdu, i * 4);
-        if (plot_sampling && i == advancedMenuOp) {
-          plot_arr_float[plot_count] = channels[channelIndex].float_values[i];
-          plot_count++;
-          readPointer++;
-          if (plot_count >= PLOT_SAMPLE_SIZE) {
-            plot_count = 0;
-          }
-        }
-      }
-    } else {
-      for (int i = 0; i < dataSize / 4; i++) {
-        if (channels[channelIndex].int_values.size() <= i)
-          channels[channelIndex].int_values.push_back(getSVInt(asdu, i * 4));
-        else {
-          channels[channelIndex].int_values[i] = getSVInt(asdu, i * 4);
-          if (plot_sampling && i == advancedMenuOp) {
-            plot_arr_int[plot_count] = channels[channelIndex].int_values[i];
+      if (channels[channelIndex].dataType == FLOAT_) {
+        for (int i = 0; i < dataSize / 4; i++) {
+          channels[channelIndex].float_values[i] = getSVFloat(asdu, i * 4);
+          if (plot_sampling && i == advancedMenuOp && strcmp(channels[channelIndex].name, channel_advanced->name) == 0) {
+            plot_arr_float[plot_count] = channels[channelIndex].float_values[i];
             plot_count++;
+            readPointer++;
             if (plot_count >= PLOT_SAMPLE_SIZE) {
               plot_count = 0;
+            }
+          }
+        }
+      } else {
+        for (int i = 0; i < dataSize / 4; i++) {
+          if (channels[channelIndex].int_values.size() <= i)
+            channels[channelIndex].int_values.push_back(getSVInt(asdu, i * 4));
+          else {
+            channels[channelIndex].int_values[i] = getSVInt(asdu, i * 4);
+            if (plot_sampling && i == advancedMenuOp && strcmp(channels[channelIndex].name, channel_advanced->name) == 0) {
+              plot_arr_int[plot_count] = channels[channelIndex].int_values[i];
+              plot_count++;
+              if (plot_count >= PLOT_SAMPLE_SIZE) {
+                plot_count = 0;
+              }
             }
           }
         }
