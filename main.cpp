@@ -1,7 +1,5 @@
 /*
-*
 *  Sample Values Client
-*
 */
 #include <GL/glew.h>
 #include <SDL2/SDL.h>
