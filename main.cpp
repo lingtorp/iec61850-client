@@ -63,6 +63,7 @@ struct sv_channel {
 //////////////////////////////
 
 /** Main loop variable */
+// TODO: REDUCE THE NUMBER OF GLOBAL VARIABLES BY DECLARING SOME IN THE MAIN FUNTION
 bool running = true;
 /** Global variables for gui window */
 struct nk_color background;
@@ -442,12 +443,13 @@ int get_sv_int(SVClientASDU asdu, int pos) {
   return SVClientASDU_getINT32(asdu, pos);
 }
 
-int get_measurement_sample(SVClientASDU asdu){
+int get_measurement_sample(SVClientASDU asdu) {
   Measurement<float> m;
   m.value = SVClientASDU_getFLOAT32(asdu, 0);
   m.timestamp = clock() - ticks;
   measurements[measuring_samples_counter] = m;
   measuring_samples_counter++;
+  return 0; // TODO: Check, what is this?
 }
 
 /*
