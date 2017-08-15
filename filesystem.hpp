@@ -5,7 +5,11 @@
 
 namespace FS {
   void save_data(std::vector<Measurement>, std::string file_path, bool create = true) {
-
+    #ifdef __LINUX__
+      
+    #elif
+      #error OS not supported
+    #endif
   }
 }
 
