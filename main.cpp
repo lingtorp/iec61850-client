@@ -181,14 +181,14 @@ int main(int argc, char **argv) {
 
           /* Display each channel with its number and values */
           if (channel_advanced->dataType == FLOAT_) {
-            for (int j = 0; j < channel_advanced->float_values.size(); j++) {
+            for (size_t j = 0; j < channel_advanced->float_values.size(); j++) {
               nk_property_float(ctx, ("Value " + int_to_string(j + 1)).c_str(),
                                 channel_advanced->float_values[j],
                                 &(channel_advanced->float_values[j]),
                                 channel_advanced->float_values[j], 10, 1);
             }
           } else {
-            for (int j = 0; j < channel_advanced->int_values.size(); j++) {
+            for (size_t j = 0; j < channel_advanced->int_values.size(); j++) {
               nk_property_int(ctx, ("Value " + int_to_string(j + 1)).c_str(),
                               channel_advanced->int_values[j],
                               &(channel_advanced->int_values[j]),
@@ -216,7 +216,7 @@ int main(int argc, char **argv) {
           }
 
           /* Displey all channels as options to choose between for plot */
-          for (int s = 0; s < optionsCount; s++) {
+          for (size_t s = 0; s < optionsCount; s++) {
             if (nk_option_label(ctx, ("Value " + int_to_string(s + 1)).c_str(),
                                 advancedMenuOp == s))
               advancedMenuOp = s;
@@ -269,7 +269,7 @@ int main(int argc, char **argv) {
           if (nk_menu_begin_label(ctx, "AVAILABLE INTERFACES", NK_TEXT_LEFT,
                                   nk_vec2(120, 200))) {
             nk_layout_row_dynamic(ctx, 30, 1);
-            for (int i = 0; i < available_interfaces.size(); i++) {
+            for (size_t i = 0; i < available_interfaces.size(); i++) {
               if (nk_menu_item_label(ctx, available_interfaces[i].c_str(),
                                      NK_TEXT_LEFT)) {
                 /* Re-initialize the client if we choose another interface */
@@ -282,7 +282,7 @@ int main(int argc, char **argv) {
             nk_menu_end(ctx);
           }
           /* Display all channels with name and all values */
-          for (int i = 0; i < channels.size(); i++) {
+          for (size_t i = 0; i < channels.size(); i++) {
             int op = channels[i].dataType;
             nk_layout_row_dynamic(ctx, 30, 12);
             if (nk_option_label(ctx, "float", op == FLOAT_))
@@ -300,14 +300,14 @@ int main(int argc, char **argv) {
             }
             if (channels[i].visible) {
               if (channels[i].dataType == FLOAT_) {
-                for (int j = 0; j < channels[i].float_values.size(); j++) {
+                for (size_t j = 0; j < channels[i].float_values.size(); j++) {
                   nk_property_float(ctx, ("Value " + int_to_string(j + 1)).c_str(),
                                     channels[i].float_values[j],
                                     &channels[i].float_values[j],
                                     channels[i].float_values[j], 10, 1);
                 }
               } else {
-                for (int j = 0; j < channels[i].int_values.size(); j++) {
+                for (size_t j = 0; j < channels[i].int_values.size(); j++) {
                   nk_property_int(ctx, ("Value " + int_to_string(j + 1)).c_str(),
                                   channels[i].int_values[j],
                                   &channels[i].int_values[j],
@@ -354,7 +354,7 @@ int main(int argc, char **argv) {
 */
 static float rms_int() {
   long sum = 0;
-  for (int i = 0; i < PLOT_SAMPLE_SIZE; i++) {
+  for (size_t i = 0; i < PLOT_SAMPLE_SIZE; i++) {
     sum += plot_arr_int[i] * plot_arr_int[i];
   }
   return sqrt(sum / (float)PLOT_SAMPLE_SIZE);
@@ -365,7 +365,7 @@ static float rms_int() {
 */
 static float rms_float() {
   float sum = 0;
-  for (int i = 0; i < PLOT_SAMPLE_SIZE; i++) {
+  for (size_t i = 0; i < PLOT_SAMPLE_SIZE; i++) {
     sum += plot_arr_float[i] * plot_arr_float[i];
   }
   return sqrt(sum / PLOT_SAMPLE_SIZE);
@@ -413,7 +413,7 @@ static void leave_empty_space(int height) {
  * Clears the plot_arr_int array.
 */
 static void clear_int_sample() {
-  for (int i = 0; i < PLOT_SAMPLE_SIZE; i++) {
+  for (size_t i = 0; i < PLOT_SAMPLE_SIZE; i++) {
     plot_arr_int[i] = 0;
   }
 }
@@ -422,7 +422,7 @@ static void clear_int_sample() {
  * Clears the plot_arr_float array.
 */
 static void clear_float_sample() {
-  for (int i = 0; i < PLOT_SAMPLE_SIZE; i++) {
+  for (size_t i = 0; i < PLOT_SAMPLE_SIZE; i++) {
     plot_arr_float[i] = 0;
   }
 }
@@ -432,7 +432,7 @@ static void clear_float_sample() {
  * Return its index if channel is found, -1 otherwise.
 */
 static int find_channel_by_name(const char *name) {
-  for (int i = 0; i < channels.size(); i++) {
+  for (size_t i = 0; i < channels.size(); i++) {
     if (strcmp(name, channels[i].name) == 0)
       return i;
   }
@@ -475,7 +475,7 @@ static void svUpdateListener(SVSubscriber subscriber, void *parameter, SVClientA
       measuring_samples_counter = 0;
       FS::save_data(measurements,"tempFile");
       /*
-      for(int i = 0; i < MEASUREMENT_SAMPLE_SIZE; i++){
+      for(size_t i = 0; i < MEASUREMENT_SAMPLE_SIZE; i++){
         cout<<measurements[i].value;
         cout<<" ";
         cout<<fixed<<setprecision(10)<<(float)measurements[i].timestamp/CLOCKS_PER_SEC<<endl;
@@ -488,7 +488,7 @@ static void svUpdateListener(SVSubscriber subscriber, void *parameter, SVClientA
   if (channelIndex == -1) {
     sv_channel newChannel;
     newChannel.name = svID;
-    for (int i = 0; i < dataSize / 4; i++) {
+    for (size_t i = 0; i < dataSize / 4; i++) {
       newChannel.float_values.push_back(get_sv_float(asdu, i * 4));
     }
     newChannel.int_values.reserve(dataSize / 4);
@@ -497,7 +497,7 @@ static void svUpdateListener(SVSubscriber subscriber, void *parameter, SVClientA
     channels.push_back(newChannel);
   } else {
       if (channels[channelIndex].dataType == FLOAT_) {
-        for (int i = 0; i < dataSize / 4; i++) {
+        for (size_t i = 0; i < dataSize / 4; i++) {
           channels[channelIndex].float_values[i] = get_sv_float(asdu, i * 4);
           if (plot_sampling && i == advancedMenuOp && strcmp(channels[channelIndex].name, channel_advanced->name) == 0) {
             plot_arr_float[plot_count] = channels[channelIndex].float_values[i];
@@ -509,7 +509,7 @@ static void svUpdateListener(SVSubscriber subscriber, void *parameter, SVClientA
           }
         }
       } else {
-        for (int i = 0; i < dataSize / 4; i++) {
+        for (size_t i = 0; i < dataSize / 4; i++) {
           if (channels[channelIndex].int_values.size() <= i)
             channels[channelIndex].int_values.push_back(get_sv_int(asdu, i * 4));
           else {
@@ -599,7 +599,7 @@ static void sv_client_init() {
 */
 static void get_float_array(float array[]) {
   int p = readPointer;
-  for (int i = 0; i < PLOT_SAMPLE_SIZE; i++) {
+  for (size_t i = 0; i < PLOT_SAMPLE_SIZE; i++) {
     array[i] = plot_arr_float[p % PLOT_SAMPLE_SIZE];
     p++;
   }
@@ -611,7 +611,7 @@ static void get_float_array(float array[]) {
 */
 static void get_int_array(float array[]) {
   int p = readPointer;
-  for (int i = 0; i < PLOT_SAMPLE_SIZE; i++) {
+  for (size_t i = 0; i < PLOT_SAMPLE_SIZE; i++) {
     array[i] = plot_arr_int[p % PLOT_SAMPLE_SIZE];
     p++;
   }
