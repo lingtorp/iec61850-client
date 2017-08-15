@@ -92,16 +92,15 @@ static int plot_count = 0;
 static int readPointer = 0;
 /** Global varialbe decides if plot values will be collected */
 static bool plot_sampling = false;
-
-//static Measurement<float> measurements[MEASUREMENT_SAMPLE_SIZE];
+/** TODO */
 static vector<Measurement<float>> measurements(MEASUREMENT_SAMPLE_SIZE);
-
+/** TODO */
 static bool measuring_samples = false;
-
+/** TODO */
 static int measuring_samples_counter = 0;
-
+/** TODO */
 static sv_channel *channel_measurment;
-
+/** TODO */
 static clock_t ticks;
 
 
