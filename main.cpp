@@ -198,14 +198,14 @@ int main(int argc, char **argv) {
 
           leave_empty_space(30);
 
-          int optionsCount;
+          int opts_count;
           if (channel_advanced->dataType == FLOAT_)
-            optionsCount = channel_advanced->float_values.size();
+            opts_count = channel_advanced->float_values.size();
           else
-            optionsCount = channel_advanced->int_values.size();
+            opts_count = channel_advanced->int_values.size();
 
           /* Displey plot button menu */
-          nk_layout_row_static(ctx, 30, 80, optionsCount + 2);
+          nk_layout_row_static(ctx, 30, 80, opts_count + 2);
           if (nk_menu_begin_label(ctx, "PLOT", NK_TEXT_LEFT, nk_vec2(120, 200))) {
             nk_layout_row_dynamic(ctx, 30, 1);
             if (nk_menu_item_label(ctx, "START", NK_TEXT_LEFT))
@@ -216,7 +216,7 @@ int main(int argc, char **argv) {
           }
 
           /* Displey all channels as options to choose between for plot */
-          for (size_t s = 0; s < optionsCount; s++) {
+          for (size_t s = 0; s < opts_count; s++) {
             if (nk_option_label(ctx, ("Value " + int_to_string(s + 1)).c_str(),
                                 advanced_menu_opt == s))
               advanced_menu_opt = s;
