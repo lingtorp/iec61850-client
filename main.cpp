@@ -445,7 +445,7 @@ int get_sv_int(SVClientASDU asdu, int pos) {
   return SVClientASDU_getINT32(asdu, pos);
 }
 
-int getMeasurementSample(SVClientASDU asdu){
+int get_measurement_sample(SVClientASDU asdu){
   Measurement<float> m;
   m.value = SVClientASDU_getFLOAT32(asdu, 0);
   m.timestamp = clock() - ticks;
@@ -456,7 +456,7 @@ int getMeasurementSample(SVClientASDU asdu){
 /*
  * Callback handler for received SV messages
 */
-void svUpdateListener(SVSubscriber subscriber, void *parameter, SVClientASDU asdu) {
+void sv_update_listener(SVSubscriber subscriber, void *parameter, SVClientASDU asdu) {
 
   const char *svID = SVClientASDU_getSvId(asdu);
   if(measuring_samples && strcmp(channel_measurment->name,svID) == 0){
@@ -470,7 +470,7 @@ void svUpdateListener(SVSubscriber subscriber, void *parameter, SVClientASDU asd
         cout<<" ";
         cout<<fixed<<setprecision(10)<<(float)measurements[i].timestamp/CLOCKS_PER_SEC<<endl;
       } */
-    } else getMeasurementSample(asdu);
+    } else get_measurement_sample(asdu);
   } else {
   int channelIndex = find_channel_by_name(svID);
   uint64_t data_size = SVClientASDU_getDataSize(asdu);
@@ -568,7 +568,7 @@ void sv_client_init() {
   SVSubscriber subscriber = SVSubscriber_create(NULL, 0x4000);
 
   /* Install a callback handler for the subscriber */
-  SVSubscriber_setListener(subscriber, svUpdateListener, NULL);
+  SVSubscriber_setListener(subscriber, sv_update_listener, NULL);
 
   /* Connect the subscriber to the receiver */
   SVReceiver_addSubscriber(receiver, subscriber);
