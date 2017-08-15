@@ -65,65 +65,65 @@ struct sv_channel {
 //////////////////////////////
 
 /** Main loop variable */
-static bool running = true;
+bool running = true;
 /** Global variables for gui window */
 struct nk_color background;
-static int win_width, win_height;
-static SDL_Window *win;
-static SVReceiver receiver;
+int win_width, win_height;
+SDL_Window *win;
+SVReceiver receiver;
 struct nk_context *ctx;
 /** Vector with all recieving channels */
-static vector<sv_channel> channels;
+vector<sv_channel> channels;
 /** Global variable decides which menu will be shown */
-static bool advanced = false;
+bool advanced = false;
 /** Global varible hols channel that is in advanced menu */
-static sv_channel *channel_advanced;
+sv_channel *channel_advanced;
 /** Global variable decides which value option will be choosen */
-static int advanced_menu_opt = 0;
+int advanced_menu_opt = 0;
 /** Default interface name for Ubuntu running on VM VirtualBox */
-static string interface = "lo";
+string interface = "lo";
 /** Global array holds float sv for plot */
-static float plot_arr_float[PLOT_SAMPLE_SIZE];
+float plot_arr_float[PLOT_SAMPLE_SIZE];
 /** Global array holds int sv for plot */
-static float plot_arr_int[PLOT_SAMPLE_SIZE];
+float plot_arr_int[PLOT_SAMPLE_SIZE];
 /** Global varialbe hold position for plot_arr input */
-static int plot_count = 0;
+int plot_count = 0;
 /** Global variable hold position for plot_arr read */
-static int readPointer = 0;
+int readPointer = 0;
 /** Global varialbe decides if plot values will be collected */
-static bool plot_sampling = false;
+bool plot_sampling = false;
 /** TODO */
-static vector<Measurement<float>> measurements(MEASUREMENT_SAMPLE_SIZE);
+vector<Measurement<float>> measurements(MEASUREMENT_SAMPLE_SIZE);
 /** TODO */
-static bool measuring_samples = false;
+bool measuring_samples = false;
 /** TODO */
-static int measuring_samples_counter = 0;
+int measuring_samples_counter = 0;
 /** TODO */
-static sv_channel *channel_measurment;
+sv_channel *channel_measurment;
 /** TODO */
-static clock_t ticks;
+ clock_t ticks;
 
 
 ////////////////////////////////
 //// Functions declaration ////
 //////////////////////////////
-static void cleanup();
-static void sv_client_init();
-static int find_channel_by_name(const char *name);
-static void sigint_handler(int signalId);
-static float get_sv_float(SVClientASDU asdu);
-static int get_sv_int(SVClientASDU asdu);
-static void gui_init();
-static string int_to_string(int number);
-static void leave_empty_space(int height);
-static void clear_int_sample();
-static void clear_float_sample();
-static float rms_float();
-static float rms_int();
-static string float_to_string(float number);
-static vector<string> find_network_interface_names();
-static void get_float_array(float array[]);
-static void get_int_array(float array[]);
+void cleanup();
+void sv_client_init();
+int find_channel_by_name(const char *name);
+void sigint_handler(int signalId);
+float get_sv_float(SVClientASDU asdu);
+int get_sv_int(SVClientASDU asdu);
+void gui_init();
+string int_to_string(int number);
+void leave_empty_space(int height);
+void clear_int_sample();
+void clear_float_sample();
+float rms_float();
+float rms_int();
+string float_to_string(float number);
+vector<string> find_network_interface_names();
+void get_float_array(float array[]);
+void get_int_array(float array[]);
 
 /** Entry point for the program */
 int main(int argc, char **argv) {
@@ -342,7 +342,7 @@ int main(int argc, char **argv) {
 /*
  * Calculates and returns RMS (Root Mean Square) for int sv.
 */
-static float rms_int() {
+float rms_int() {
   long sum = 0;
   for (size_t i = 0; i < PLOT_SAMPLE_SIZE; i++) {
     sum += plot_arr_int[i] * plot_arr_int[i];
@@ -353,7 +353,7 @@ static float rms_int() {
 /*
  * Calculates and returns RMS (Root Mean Square) for float sv.
 */
-static float rms_float() {
+float rms_float() {
   float sum = 0;
   for (size_t i = 0; i < PLOT_SAMPLE_SIZE; i++) {
     sum += plot_arr_float[i] * plot_arr_float[i];
@@ -364,7 +364,7 @@ static float rms_float() {
 /*
  * Destroys the client reviever and terminates program.
 */
-static void cleanup() {
+void cleanup() {
   /* Stop listening to SV messages */
   SVReceiver_stop(receiver);
 
@@ -376,7 +376,7 @@ static void cleanup() {
 /*
  * Converts int to string and returns it.
 */
-static string int_to_string(int number) {
+string int_to_string(int number) {
   stringstream ss;
   ss << number;
   return ss.str();
@@ -385,7 +385,7 @@ static string int_to_string(int number) {
 /*
  * Converts float to string and returns it.
 */
-static string float_to_string(float number) {
+string float_to_string(float number) {
   stringstream ss;
   ss << fixed << setprecision(4) << number;
   return ss.str();
@@ -394,7 +394,7 @@ static string float_to_string(float number) {
 /*
  * Make empty row of height on gui window.
 */
-static void leave_empty_space(int height) {
+void leave_empty_space(int height) {
   nk_layout_row_dynamic(ctx, height, 1);
   nk_label(ctx, "", NK_TEXT_LEFT);
 }
@@ -402,7 +402,7 @@ static void leave_empty_space(int height) {
 /*
  * Clears the plot_arr_int array.
 */
-static void clear_int_sample() {
+void clear_int_sample() {
   for (size_t i = 0; i < PLOT_SAMPLE_SIZE; i++) {
     plot_arr_int[i] = 0;
   }
@@ -411,7 +411,7 @@ static void clear_int_sample() {
 /*
  * Clears the plot_arr_float array.
 */
-static void clear_float_sample() {
+void clear_float_sample() {
   for (size_t i = 0; i < PLOT_SAMPLE_SIZE; i++) {
     plot_arr_float[i] = 0;
   }
@@ -421,7 +421,7 @@ static void clear_float_sample() {
  * Search the vector channels for a channel with name.
  * Return its index if channel is found, -1 otherwise.
 */
-static int find_channel_by_name(const char *name) {
+int find_channel_by_name(const char *name) {
   for (size_t i = 0; i < channels.size(); i++) {
     if (strcmp(name, channels[i].name) == 0)
       return i;
@@ -429,23 +429,23 @@ static int find_channel_by_name(const char *name) {
   return -1;
 }
 
-static void sigint_handler(int signalId) { running = 0; }
+void sigint_handler(int signalId) { running = 0; }
 
 /*
  * Read and return float from ethernet.
 */
-static float get_sv_float(SVClientASDU asdu, int pos) {
+float get_sv_float(SVClientASDU asdu, int pos) {
   return SVClientASDU_getFLOAT32(asdu, pos);
 }
 
 /*
  * Read and return int from ethernet.
 */
-static int get_sv_int(SVClientASDU asdu, int pos) {
+int get_sv_int(SVClientASDU asdu, int pos) {
   return SVClientASDU_getINT32(asdu, pos);
 }
 
-static int getMeasurementSample(SVClientASDU asdu){
+int getMeasurementSample(SVClientASDU asdu){
   Measurement<float> m;
   m.value = SVClientASDU_getFLOAT32(asdu, 0);
   m.timestamp = clock() - ticks;
@@ -456,7 +456,7 @@ static int getMeasurementSample(SVClientASDU asdu){
 /*
  * Callback handler for received SV messages
 */
-static void svUpdateListener(SVSubscriber subscriber, void *parameter, SVClientASDU asdu) {
+void svUpdateListener(SVSubscriber subscriber, void *parameter, SVClientASDU asdu) {
 
   const char *svID = SVClientASDU_getSvId(asdu);
   if(measuring_samples && strcmp(channel_measurment->name,svID) == 0){
@@ -521,7 +521,7 @@ static void svUpdateListener(SVSubscriber subscriber, void *parameter, SVClientA
 /*
  * Initilize gui window.
 */
-static void gui_init() {
+void gui_init() {
   /* SDL setup */
   SDL_SetHint(SDL_HINT_VIDEO_HIGHDPI_DISABLED, "0");
   SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER | SDL_INIT_EVENTS);
@@ -557,7 +557,7 @@ static void gui_init() {
 /*
  * Initilize sample value client that listens on ethernet interface "enp0s3"
 */
-static void sv_client_init() {
+void sv_client_init() {
   // SV client
   receiver = SVReceiver_create();
 
@@ -583,7 +583,7 @@ static void sv_client_init() {
  * Fills the array[] cyclically with the values from plot_arr_float.
  * Uses readPointer to simulate array translation one spot to the left.
 */
-static void get_float_array(float array[]) {
+void get_float_array(float array[]) {
   int p = readPointer;
   for (size_t i = 0; i < PLOT_SAMPLE_SIZE; i++) {
     array[i] = plot_arr_float[p % PLOT_SAMPLE_SIZE];
@@ -595,7 +595,7 @@ static void get_float_array(float array[]) {
  * Fills the array[] cyclically with the values from plot_arr_int.
  * Uses readPointer to simulate array translation one spot to the left.
 */
-static void get_int_array(float array[]) {
+void get_int_array(float array[]) {
   int p = readPointer;
   for (size_t i = 0; i < PLOT_SAMPLE_SIZE; i++) {
     array[i] = plot_arr_int[p % PLOT_SAMPLE_SIZE];
@@ -606,7 +606,7 @@ static void get_int_array(float array[]) {
 /*
  * Find all the network interface names (platform specifics)
  */
-static vector<string> find_network_interface_names() {
+vector<string> find_network_interface_names() {
   vector<string> network_interfaces;
 #ifdef __LINUX__
   struct ifaddrs *addrs, *tmp;
