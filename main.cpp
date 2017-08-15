@@ -75,7 +75,7 @@ static sv_channel *channel_advanced;
 /** Global variable decides which value option will be choosen */
 static int advancedMenuOp = 0;
 /** Default interface name for Ubuntu running on VM VirtualBox */
-static string interface = "enp0s3";
+static string interface = "lo";
 /** Global array holds float sv for plot */
 static float plot_arr_float[PLOT_SAMPLE_SIZE];
 /** Global array holds int sv for plot */
