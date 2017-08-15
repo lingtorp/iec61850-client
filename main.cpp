@@ -125,16 +125,6 @@ static vector<string> find_network_interface_names();
 static void get_float_array(float array[]);
 static void get_int_array(float array[]);
 
-static void add_channel_sim() {
-  sv_channel sv;
-  sv.name = "random";
-  sv.dataType = FLOAT_;
-  sv.float_values.push_back(0.1);
-  sv.float_values.push_back(0.02);
-  sv.visible = false;
-  channels.push_back(sv);
-}
-
 /** Entry point for the program */
 int main(int argc, char **argv) {
 
