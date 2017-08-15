@@ -79,7 +79,7 @@ static bool advanced = false;
 /** Global varible hols channel that is in advanced menu */
 static sv_channel *channel_advanced;
 /** Global variable decides which value option will be choosen */
-static int advancedMenuOp = 0;
+static int advanced_menu_opt = 0;
 /** Default interface name for Ubuntu running on VM VirtualBox */
 static string interface = "lo";
 /** Global array holds float sv for plot */
@@ -218,8 +218,8 @@ int main(int argc, char **argv) {
           /* Displey all channels as options to choose between for plot */
           for (size_t s = 0; s < optionsCount; s++) {
             if (nk_option_label(ctx, ("Value " + int_to_string(s + 1)).c_str(),
-                                advancedMenuOp == s))
-              advancedMenuOp = s;
+                                advanced_menu_opt == s))
+              advanced_menu_opt = s;
           }
 
           /* Plot the graph */
@@ -499,7 +499,7 @@ static void svUpdateListener(SVSubscriber subscriber, void *parameter, SVClientA
       if (channels[channelIndex].dataType == FLOAT_) {
         for (size_t i = 0; i < dataSize / 4; i++) {
           channels[channelIndex].float_values[i] = get_sv_float(asdu, i * 4);
-          if (plot_sampling && i == advancedMenuOp && strcmp(channels[channelIndex].name, channel_advanced->name) == 0) {
+          if (plot_sampling && i == advanced_menu_opt && strcmp(channels[channelIndex].name, channel_advanced->name) == 0) {
             plot_arr_float[plot_count] = channels[channelIndex].float_values[i];
             plot_count++;
             readPointer++;
@@ -514,7 +514,7 @@ static void svUpdateListener(SVSubscriber subscriber, void *parameter, SVClientA
             channels[channelIndex].int_values.push_back(get_sv_int(asdu, i * 4));
           else {
             channels[channelIndex].int_values[i] = get_sv_int(asdu, i * 4);
-            if (plot_sampling && i == advancedMenuOp && strcmp(channels[channelIndex].name, channel_advanced->name) == 0) {
+            if (plot_sampling && i == advanced_menu_opt && strcmp(channels[channelIndex].name, channel_advanced->name) == 0) {
               plot_arr_int[plot_count] = channels[channelIndex].int_values[i];
               plot_count++;
               if (plot_count >= PLOT_SAMPLE_SIZE) {
