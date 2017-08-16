@@ -4,7 +4,8 @@
 template<typename T>
 struct Measurement {
   T value;
-  uint64_t timestamp;
+  uint64_t client_timestamp;
+  uint64_t server_timestamp;
 };
 
 #endif // _MEASUREMENT_HPP_
