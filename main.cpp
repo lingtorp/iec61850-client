@@ -154,7 +154,7 @@ int main(int argc, char **argv) {
     if (nk_begin(ctx, "IEC61850-Client", nk_rect(0, 0, 800, 600),
                  NK_WINDOW_BORDER | NK_WINDOW_SCALABLE | NK_WINDOW_TITLE)) {
       /* Display advanced menu if it is choosen */
-      if(!measuring_samples) {
+      if (!measuring_samples) {
         if (advanced) {
           nk_layout_row_dynamic(ctx, 10, 1);
           nk_label(ctx, "---------- ADVANCED ----------", NK_TEXT_CENTERED);
@@ -310,7 +310,7 @@ int main(int argc, char **argv) {
                 advanced = true;
                 channel_advanced = &channels[i];
               }
-              if(nk_button_label(ctx,"SAMPLE")) {
+              if (nk_button_label(ctx,"SAMPLE")) {
                 measuring_samples = true;
                 channel_measurment = &channels[i];
                 clock_gettime(CLOCK_MONOTONIC, &ts_start);
@@ -463,11 +463,11 @@ int get_measurement_sample(SVClientASDU asdu) {
 /*
  * Callback handler for received SV messages
 */
-void sv_update_listener(SVSubscriber subscriber, void *parameter, SVClientASDU asdu) {
+void sv_update_listener(SVSubscriber subscriber, void* parameter, SVClientASDU asdu) {
 
   const char *svID = SVClientASDU_getSvId(asdu);
-  if(measuring_samples && strcmp(channel_measurment->name,svID) == 0){
-    if(measuring_samples_counter >= MEASUREMENT_SAMPLE_SIZE){
+  if (measuring_samples && strcmp(channel_measurment->name, svID) == 0){
+    if (measuring_samples_counter >= MEASUREMENT_SAMPLE_SIZE){
       measuring_samples = false;
       measuring_samples_counter = 0;
       FS::save_data(measurements,"tempFile");
