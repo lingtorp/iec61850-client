@@ -47,14 +47,14 @@
 
 using namespace std;
 
-enum { INT_, FLOAT_ };
+enum class SVValueType: int { INT = 0, FLOAT = 1 };
 
 /** Sample values channel */
 struct sv_channel {
   const char *name;
   vector<int> int_values;
   vector<float> float_values;
-  int dataType;
+  SVValueType dataType;
   bool visible;
 };
 
@@ -158,18 +158,18 @@ int main(int argc, char **argv) {
           nk_label(ctx, "---------- ADVANCED ----------", NK_TEXT_CENTERED);
 
           /* Choose between int and float datatype  */
-          int op = channel_advanced->dataType;
+          SVValueType op = channel_advanced->dataType;
           nk_layout_row_dynamic(ctx, 30, 12);
-          if (nk_option_label(ctx, "float", op == FLOAT_))
-            op = FLOAT_;
-          if (nk_option_label(ctx, "int", op == INT_))
-            op = INT_;
+          if (nk_option_label(ctx, "float", op == SVValueType::FLOAT))
+            op = SVValueType::FLOAT;
+          if (nk_option_label(ctx, "int", op == SVValueType::INT))
+            op = SVValueType::INT;
           channel_advanced->dataType = op;
           nk_layout_row_dynamic(ctx, 25, 1);
           nk_button_label(ctx, channel_advanced->name);
 
           /* Display each channel with its number and values */
-          if (channel_advanced->dataType == FLOAT_) {
+          if (channel_advanced->dataType == SVValueType::FLOAT) {
             for (size_t j = 0; j < channel_advanced->float_values.size(); j++) {
               nk_property_float(ctx, ("Value " + int_to_string(j + 1)).c_str(),
                                 channel_advanced->float_values[j],
@@ -188,7 +188,7 @@ int main(int argc, char **argv) {
           leave_empty_space(30);
 
           uint64_t opts_count;
-          if (channel_advanced->dataType == FLOAT_)
+          if (channel_advanced->dataType == SVValueType::FLOAT)
             opts_count = channel_advanced->float_values.size();
           else
             opts_count = channel_advanced->int_values.size();
@@ -213,7 +213,7 @@ int main(int argc, char **argv) {
 
           /* Plot the graph */
           nk_layout_row_static(ctx, 200, 800, 1);
-          if (channel_advanced->dataType == FLOAT_) {
+          if (channel_advanced->dataType == SVValueType::FLOAT) {
             float arr[PLOT_SAMPLE_SIZE];
             get_float_array(arr);
             nk_plot(ctx, NK_CHART_LINES, arr, PLOT_SAMPLE_SIZE, 0.1);
@@ -226,7 +226,7 @@ int main(int argc, char **argv) {
           /* Calculate and displey rms value if plot is on */
           if (plot_sampling) {
             nk_layout_row_dynamic(ctx, 30, 1);
-            if (channel_advanced->dataType == FLOAT_)
+            if (channel_advanced->dataType == SVValueType::FLOAT)
               nk_label(ctx, ("RMS Value:  " + float_to_string(rms_float())).c_str(),
                        NK_TEXT_LEFT);
             else
@@ -255,7 +255,7 @@ int main(int argc, char **argv) {
           /* Dispay menu with all available interfaces */
           vector<string> available_interfaces = find_network_interface_names();
           nk_layout_row_static(ctx, 30, 150, 1);
-          if (nk_menu_begin_label(ctx, "AVAILABLE INTERFACES", NK_TEXT_LEFT,
+          if (nk_menu_begin_label(ctx, "AVAILABLE SVValueType::INTERFACES", NK_TEXT_LEFT,
                                   nk_vec2(120, 200))) {
             nk_layout_row_dynamic(ctx, 30, 1);
             for (size_t i = 0; i < available_interfaces.size(); i++) {
@@ -272,12 +272,12 @@ int main(int argc, char **argv) {
           }
           /* Display all channels with name and all values */
           for (size_t i = 0; i < channels.size(); i++) {
-            int op = channels[i].dataType;
+            SVValueType op = channels[i].dataType;
             nk_layout_row_dynamic(ctx, 30, 12);
-            if (nk_option_label(ctx, "float", op == FLOAT_))
-              op = FLOAT_;
-            if (nk_option_label(ctx, "int", op == INT_))
-              op = INT_;
+            if (nk_option_label(ctx, "float", op == SVValueType::FLOAT))
+              op = SVValueType::FLOAT;
+            if (nk_option_label(ctx, "int", op == SVValueType::INT))
+              op = SVValueType::INT;
             channels[i].dataType = op;
             bool visible = channels[i].visible;
             nk_layout_row_dynamic(ctx, 25, 1);
@@ -288,7 +288,7 @@ int main(int argc, char **argv) {
                 channels[i].visible = true;
             }
             if (channels[i].visible) {
-              if (channels[i].dataType == FLOAT_) {
+              if (channels[i].dataType == SVValueType::FLOAT) {
                 for (size_t j = 0; j < channels[i].float_values.size(); j++) {
                   nk_property_float(ctx, ("Value " + int_to_string(j + 1)).c_str(),
                                     channels[i].float_values[j],
@@ -463,11 +463,11 @@ void sv_update_listener(SVSubscriber subscriber, void* parameter, SVClientASDU a
       newChannel.float_values.push_back(get_sv_float(asdu, i * 4));
     }
     newChannel.int_values.reserve(data_size / 4);
-    newChannel.dataType = FLOAT_;
+    newChannel.dataType = SVValueType::FLOAT;
     newChannel.visible = false;
     channels.push_back(newChannel);
   } else {
-      if (channels[channelIndex].dataType == FLOAT_) {
+      if (channels[channelIndex].dataType == SVValueType::FLOAT) {
         for (size_t i = 0; i < data_size / 4; i++) {
           channels[channelIndex].float_values[i] = get_sv_float(asdu, i * 4);
           if (plot_sampling && i == advanced_menu_opt && strcmp(channels[channelIndex].name, channel_advanced->name) == 0) {
