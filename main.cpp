@@ -117,8 +117,6 @@ int get_sv_int(SVClientASDU asdu);
 void gui_init();
 string int_to_string(int number);
 void leave_empty_space(int height);
-void clear_int_sample();
-void clear_float_sample();
 float rms_float();
 float rms_int();
 string float_to_string(float number);
