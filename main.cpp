@@ -261,7 +261,7 @@ int main(int argc, char **argv) {
           /* Dispay menu with all available interfaces */
           vector<string> available_interfaces = find_network_interface_names();
           nk_layout_row_static(ctx, 30, 150, 1);
-          if (nk_menu_begin_label(ctx, "AVAILABLE SVValueType::INTERFACES", NK_TEXT_LEFT,
+          if (nk_menu_begin_label(ctx, "AVAILABLE INTERFACES", NK_TEXT_LEFT,
                                   nk_vec2(120, 200))) {
             nk_layout_row_dynamic(ctx, 30, 1);
             for (size_t i = 0; i < available_interfaces.size(); i++) {
