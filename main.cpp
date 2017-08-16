@@ -209,6 +209,7 @@ int main(int argc, char **argv) {
               advanced_menu_opt = s;
           }
 
+
           /* Plot the graph */
           nk_layout_row_static(ctx, 200, 800, 1);
           if (channel_advanced->dataType == SVValueType::FLOAT) {
@@ -424,6 +425,15 @@ int get_sv_int(SVClientASDU asdu, int pos) {
   return SVClientASDU_getINT32(asdu, pos);
 }
 
+const string get_currrent_dateAndTime() {
+  time_t now = time(0);
+  struct tm tstruct;
+  char buf[80];
+  tstruct = *localtime(&now);
+  strftime(buf,sizeof(buf),"%Y-%m-%d.%X",&tstruct);
+  strcat(buf,".csv");
+  return buf;
+}
 
 long last_time = ts_start.tv_nsec;
 
@@ -456,9 +466,9 @@ void sv_update_listener(SVSubscriber subscriber, void* parameter, SVClientASDU a
       measuring_samples = false;
       measuring_samples_counter = 0;
       if(channel_advanced->dataType == SVValueType::FLOAT)
-        FS::save_data(measurements_float,"tempFile.csv");
+        FS::save_data(measurements_float,get_currrent_dateAndTime());
       else
-        FS::save_data(measurements_int,"tempFile.csv");
+        FS::save_data(measurements_int,get_currrent_dateAndTime());
     } else get_measurement_sample(asdu);
   } else {
   int channelIndex = find_channel_by_name(svID);
