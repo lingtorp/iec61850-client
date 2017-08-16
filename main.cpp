@@ -73,12 +73,10 @@ SVReceiver receiver;
 struct nk_context *ctx;
 /** Vector with all recieving channels */
 vector<sv_channel> channels;
-/** Global variable decides which menu will be shown */
-bool advanced = false;
 /** Global varible hols channel that is in advanced menu */
 sv_channel *channel_advanced;
 /** Global variable decides which value option will be choosen */
-uint64_t advanced_menu_opt = 0;
+int advanced_menu_opt = 0;
 /** Default interface name for Ubuntu running on VM VirtualBox */
 string interface = "lo";
 /** Global array holds float sv for plot */
@@ -91,19 +89,18 @@ uint64_t plot_count = 0;
 uint64_t readPointer = 0;
 /** Global varialbe decides if plot values will be collected */
 bool plot_sampling = false;
-/** TODO */
+/** Vector holding measurements collected */
 vector<Measurement<float>> measurements(MEASUREMENT_SAMPLE_SIZE);
-/** TODO */
+/** Global variable decides if sampling values will be collected */
 bool measuring_samples = false;
-/** TODO */
+/** Global variable holds the position for measurments vector */
 int measuring_samples_counter = 0;
-/** TODO */
+/** Global varialbe holds the chanel which is currently sampled */
 sv_channel *channel_measurment;
-/** TODO */
- clock_t ticks;
-
- struct timespec ts_start;
- struct timespec ts_curr;
+/** Struct holds start time of sampling */
+struct timespec ts_start;
+/** Struct holds time of current sample */
+struct timespec ts_curr;
 
 ////////////////////////////////
 //// Functions declaration ////
@@ -133,6 +130,9 @@ int main(int argc, char **argv) {
   if (argc == 2) {
     interface = string(argv[1]);
   }
+
+  /** Variable decides which menu will be shown */
+  bool advanced = false;
 
   /* Initialize gui window */
   gui_init();
@@ -236,9 +236,15 @@ int main(int argc, char **argv) {
                        NK_TEXT_LEFT);
           }
 
-          leave_empty_space(50);
 
           /* Display back button */
+          nk_layout_row_static(ctx, 30, 80, 1);
+          if (nk_button_label(ctx,"SAMPLE")) {
+            measuring_samples = true;
+            channel_measurment = channel_advanced;
+            clock_gettime(CLOCK_MONOTONIC, &ts_start);
+          }
+          leave_empty_space(30);
           nk_layout_row_static(ctx, 30, 80, 1);
           if (nk_button_label(ctx, "BACK")) {
             advanced = false;
@@ -305,15 +311,10 @@ int main(int argc, char **argv) {
                                   channels[i].int_values[j], 10, 1);
                 }
               }
-              nk_layout_row_static(ctx, 30, 80, 2);
+              nk_layout_row_static(ctx, 30, 80, 1);
               if (nk_button_label(ctx, "ADVANCED")) {
                 advanced = true;
                 channel_advanced = &channels[i];
-              }
-              if (nk_button_label(ctx,"SAMPLE")) {
-                measuring_samples = true;
-                channel_measurment = &channels[i];
-                clock_gettime(CLOCK_MONOTONIC, &ts_start);
               }
             }
           }
@@ -470,12 +471,12 @@ void sv_update_listener(SVSubscriber subscriber, void* parameter, SVClientASDU a
     if (measuring_samples_counter >= MEASUREMENT_SAMPLE_SIZE){
       measuring_samples = false;
       measuring_samples_counter = 0;
-      FS::save_data(measurements,"tempFile");
-      for(size_t i = 0; i < MEASUREMENT_SAMPLE_SIZE; i++){
+      FS::save_data(measurements,"tempFile.csv");
+      /*for(size_t i = 0; i < MEASUREMENT_SAMPLE_SIZE; i++){
         cout<<measurements[i].value;
         cout<<" ";
         cout<<measurements[i].timestamp<<endl;
-      }
+      } */
     } else get_measurement_sample(asdu);
   } else {
   int channelIndex = find_channel_by_name(svID);
