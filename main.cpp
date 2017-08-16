@@ -73,12 +73,10 @@ SVReceiver receiver;
 struct nk_context *ctx;
 /** Vector with all recieving channels */
 vector<sv_channel> channels;
-/** Global variable decides which menu will be shown */
-bool advanced = false;
 /** Global varible hols channel that is in advanced menu */
 sv_channel *channel_advanced;
 /** Global variable decides which value option will be choosen */
-uint64_t advanced_menu_opt = 0;
+int advanced_menu_opt = 0;
 /** Default interface name for Ubuntu running on VM VirtualBox */
 string interface = "lo";
 /** Global array holds float sv for plot */
@@ -91,19 +89,18 @@ uint64_t plot_count = 0;
 uint64_t read_ptr = 0;
 /** Global varialbe decides if plot values will be collected */
 bool plot_sampling = false;
-/** TODO */
-vector<Measurement<float>> measurements(MEASUREMENT_SAMPLE_SIZE);
-/** TODO */
+/** Vector holding float measurements collected */
+vector<Measurement<float>> measurements_float(MEASUREMENT_SAMPLE_SIZE);
+/** Vector holding int measurements collected */
+vector<Measurement<int>> measurements_int(MEASUREMENT_SAMPLE_SIZE);
+/** Global variable decides if sampling values will be collected */
 bool measuring_samples = false;
-/** TODO */
+/** Global variable holds the position for measurments vector */
 int measuring_samples_counter = 0;
-/** TODO */
-sv_channel *channel_measurment;
-/** TODO */
- clock_t ticks;
-
- struct timespec ts_start;
- struct timespec ts_curr;
+/** Struct holds start time of sampling */
+struct timespec ts_start;
+/** Struct holds time of current sample */
+struct timespec ts_curr;
 
 ////////////////////////////////
 //// Functions declaration ////
@@ -131,7 +128,8 @@ int main(int argc, char **argv) {
   if (argc == 2) {
     interface = string(argv[1]);
   }
-
+  /** Variable decides which menu will be shown */
+  bool advanced = false;
   /* Initialize gui window */
   gui_init();
   /* Initialize Sample values client */
@@ -234,9 +232,14 @@ int main(int argc, char **argv) {
                        NK_TEXT_LEFT);
           }
 
-          leave_empty_space(50);
 
           /* Display back button */
+          nk_layout_row_static(ctx, 30, 80, 1);
+          if (nk_button_label(ctx,"SAMPLE")) {
+            measuring_samples = true;
+            clock_gettime(CLOCK_MONOTONIC, &ts_start);
+          }
+          leave_empty_space(30);
           nk_layout_row_static(ctx, 30, 80, 1);
           if (nk_button_label(ctx, "BACK")) {
             advanced = false;
@@ -303,15 +306,10 @@ int main(int argc, char **argv) {
                                   channels[i].int_values[j], 10, 1);
                 }
               }
-              nk_layout_row_static(ctx, 30, 80, 2);
+              nk_layout_row_static(ctx, 30, 80, 1);
               if (nk_button_label(ctx, "ADVANCED")) {
                 advanced = true;
                 channel_advanced = &channels[i];
-              }
-              if (nk_button_label(ctx,"SAMPLE")) {
-                measuring_samples = true;
-                channel_measurment = &channels[i];
-                clock_gettime(CLOCK_MONOTONIC, &ts_start);
               }
             }
           }
@@ -430,12 +428,19 @@ int get_sv_int(SVClientASDU asdu, int pos) {
 long last_time = ts_start.tv_nsec;
 
 int get_measurement_sample(SVClientASDU asdu) {
-  Measurement<float> m;
-  m.value = SVClientASDU_getFLOAT32(asdu, 0);
   clock_gettime(CLOCK_MONOTONIC, &ts_curr);
-  m.timestamp = ts_curr.tv_nsec - last_time;
+  if(channel_advanced->dataType == FLOAT_){
+    Measurement<float> m;
+    m.value = SVClientASDU_getFLOAT32(asdu, advanced_menu_opt*4);
+    m.timestamp = ts_curr.tv_nsec - last_time;
+    measurements_float[measuring_samples_counter] = m;
+  } else {
+    Measurement<int> m;
+    m.value = SVClientASDU_getINT32(asdu, advanced_menu_opt*4);
+    m.timestamp = ts_curr.tv_nsec - last_time;
+    measurements_int[measuring_samples_counter] = m;
+  }
   last_time = ts_curr.tv_nsec;
-  measurements[measuring_samples_counter] = m;
   measuring_samples_counter++;
   return 0; // TODO: Check, what is this?
 }
@@ -446,11 +451,14 @@ int get_measurement_sample(SVClientASDU asdu) {
 void sv_update_listener(SVSubscriber subscriber, void* parameter, SVClientASDU asdu) {
 
   const char *svID = SVClientASDU_getSvId(asdu);
-  if (measuring_samples && strcmp(channel_measurment->name, svID) == 0){
+  if (measuring_samples && strcmp(channel_advanced->name, svID) == 0){
     if (measuring_samples_counter >= MEASUREMENT_SAMPLE_SIZE){
       measuring_samples = false;
       measuring_samples_counter = 0;
-      FS::save_data(measurements,"tempFile.csv");
+      if(channel_advanced->dataType == FLOAT_)
+        FS::save_data(measurements_float,"tempFile.csv");
+      else
+        FS::save_data(measurements_int,"tempFile.csv");
     } else get_measurement_sample(asdu);
   } else {
   int channelIndex = find_channel_by_name(svID);
