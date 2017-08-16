@@ -458,8 +458,8 @@ int get_measurement_sample(SVClientASDU asdu) {
 void sv_update_listener(SVSubscriber subscriber, void *parameter, SVClientASDU asdu) {
 
   const char *svID = SVClientASDU_getSvId(asdu);
-  if(measuring_samples && strcmp(channel_measurment->name,svID) == 0){
-    if(measuring_samples_counter >= MEASUREMENT_SAMPLE_SIZE){
+  if (measuring_samples && strcmp(channel_measurment->name,svID) == 0){
+    if (measuring_samples_counter >= MEASUREMENT_SAMPLE_SIZE){
       measuring_samples = false;
       measuring_samples_counter = 0;
       FS::save_data(measurements, "tempFile.cvs");
@@ -469,7 +469,9 @@ void sv_update_listener(SVSubscriber subscriber, void *parameter, SVClientASDU a
         cout<<" ";
         cout<<fixed<<setprecision(10)<<(float)measurements[i].timestamp/CLOCKS_PER_SEC<<endl;
       } */
-    } else get_measurement_sample(asdu);
+    } else {
+      get_measurement_sample(asdu);
+    }
   } else {
   int channelIndex = find_channel_by_name(svID);
   uint64_t data_size = SVClientASDU_getDataSize(asdu);
