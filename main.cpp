@@ -102,6 +102,9 @@ sv_channel *channel_measurment;
 /** TODO */
  clock_t ticks;
 
+ struct timespec ts_start;
+ struct timespec ts_curr;
+
 ////////////////////////////////
 //// Functions declaration ////
 //////////////////////////////
@@ -310,7 +313,7 @@ int main(int argc, char **argv) {
               if(nk_button_label(ctx,"SAMPLE")) {
                 measuring_samples = true;
                 channel_measurment = &channels[i];
-                ticks = clock();
+                clock_gettime(CLOCK_MONOTONIC, &ts_start);
               }
             }
           }
@@ -443,10 +446,15 @@ int get_sv_int(SVClientASDU asdu, int pos) {
   return SVClientASDU_getINT32(asdu, pos);
 }
 
+
+long last_time = ts_start.tv_nsec;
+
 int get_measurement_sample(SVClientASDU asdu) {
   Measurement<float> m;
   m.value = SVClientASDU_getFLOAT32(asdu, 0);
-  m.timestamp = clock() - ticks;
+  clock_gettime(CLOCK_MONOTONIC, &ts_curr);
+  m.timestamp = ts_curr.tv_nsec - last_time;
+  last_time = ts_curr.tv_nsec;
   measurements[measuring_samples_counter] = m;
   measuring_samples_counter++;
   return 0; // TODO: Check, what is this?
@@ -463,12 +471,11 @@ void sv_update_listener(SVSubscriber subscriber, void *parameter, SVClientASDU a
       measuring_samples = false;
       measuring_samples_counter = 0;
       FS::save_data(measurements,"tempFile");
-      /*
       for(size_t i = 0; i < MEASUREMENT_SAMPLE_SIZE; i++){
         cout<<measurements[i].value;
         cout<<" ";
-        cout<<fixed<<setprecision(10)<<(float)measurements[i].timestamp/CLOCKS_PER_SEC<<endl;
-      } */
+        cout<<measurements[i].timestamp<<endl;
+      }
     } else get_measurement_sample(asdu);
   } else {
   int channelIndex = find_channel_by_name(svID);
