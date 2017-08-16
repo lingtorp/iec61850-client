@@ -76,7 +76,7 @@ vector<sv_channel> channels;
 /** Global varible hols channel that is in advanced menu */
 sv_channel *channel_advanced;
 /** Global variable decides which value option will be choosen */
-int advanced_menu_opt = 0;
+uint32_t advanced_menu_opt = 0;
 /** Default interface name for Ubuntu running on VM VirtualBox */
 string interface = "lo";
 /** Global array holds float sv for plot */
