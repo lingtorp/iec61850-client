@@ -204,7 +204,7 @@ int main(int argc, char **argv) {
             nk_menu_end(ctx);
           }
 
-          /* Displey all channels as options to choose between for plot */
+          /* Display all channels as options to choose between for plot */
           for (size_t s = 0; s < opts_count; s++) {
             if (nk_option_label(ctx, ("Value " + int_to_string(s + 1)).c_str(),
                                 advanced_menu_opt == s))
