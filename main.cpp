@@ -88,7 +88,7 @@ float plot_arr_int[PLOT_SAMPLE_SIZE];
 /** Global varialbe hold position for plot_arr input */
 uint64_t plot_count = 0;
 /** Global variable hold position for plot_arr read */
-uint64_t readPointer = 0;
+uint64_t read_ptr = 0;
 /** Global varialbe decides if plot values will be collected */
 bool plot_sampling = false;
 /** TODO */
@@ -493,7 +493,7 @@ void sv_update_listener(SVSubscriber subscriber, void* parameter, SVClientASDU a
           if (plot_sampling && i == advanced_menu_opt && strcmp(channels[channelIndex].name, channel_advanced->name) == 0) {
             plot_arr_float[plot_count] = channels[channelIndex].float_values[i];
             plot_count++;
-            readPointer++;
+            read_ptr++;
             if (plot_count >= PLOT_SAMPLE_SIZE) {
               plot_count = 0;
             }
@@ -582,10 +582,10 @@ void sv_client_init() {
 
 /*
  * Fills the array[] cyclically with the values from plot_arr_float.
- * Uses readPointer to simulate array translation one spot to the left.
+ * Uses read_ptr to simulate array translation one spot to the left.
 */
 void get_float_array(float array[]) {
-  int p = readPointer;
+  int p = read_ptr;
   for (size_t i = 0; i < PLOT_SAMPLE_SIZE; i++) {
     array[i] = plot_arr_float[p % PLOT_SAMPLE_SIZE];
     p++;
@@ -594,10 +594,10 @@ void get_float_array(float array[]) {
 
 /*
  * Fills the array[] cyclically with the values from plot_arr_int.
- * Uses readPointer to simulate array translation one spot to the left.
+ * Uses read_ptr to simulate array translation one spot to the left.
 */
 void get_int_array(float array[]) {
-  int p = readPointer;
+  int p = read_ptr;
   for (size_t i = 0; i < PLOT_SAMPLE_SIZE; i++) {
     array[i] = plot_arr_int[p % PLOT_SAMPLE_SIZE];
     p++;
