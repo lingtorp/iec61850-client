@@ -20,7 +20,7 @@ namespace FS {
     std::ofstream file(file_path);
     if (!file.good()) { return false; }
     for (auto &value : values) {
-      file << value.value << ";" << value.timestamp << std::endl;
+      file << value.timestamp << ";" << value.value << std::endl;
     }
     return true;
   }
