@@ -82,9 +82,9 @@ uint64_t advanced_menu_opt = 0;
 /** Default interface name for Ubuntu running on VM VirtualBox */
 string interface = "lo";
 /** Global array holds float sv for plot */
-float plot_arr_float[PLOT_SAMPLE_SIZE];
+vector<float> plot_arr_float(PLOT_SAMPLE_SIZE);
 /** Global array holds int sv for plot */
-float plot_arr_int[PLOT_SAMPLE_SIZE];
+vector<float> plot_arr_int(PLOT_SAMPLE_SIZE);
 /** Global varialbe hold position for plot_arr input */
 uint64_t plot_count = 0;
 /** Global variable hold position for plot_arr read */
@@ -243,8 +243,8 @@ int main(int argc, char **argv) {
           if (nk_button_label(ctx, "BACK")) {
             advanced = false;
             plot_sampling = false;
-            clear_int_sample();
-            clear_float_sample();
+            fill(plot_arr_int.begin(), plot_arr_int.end(), 0);
+            fill(plot_arr_float.begin(), plot_arr_float.end(), 0.0f);
           }
         }
         /* If advanced menu if turned off dispay regural menu */
@@ -398,24 +398,6 @@ string float_to_string(float number) {
 void leave_empty_space(int height) {
   nk_layout_row_dynamic(ctx, height, 1);
   nk_label(ctx, "", NK_TEXT_LEFT);
-}
-
-/*
- * Clears the plot_arr_int array.
-*/
-void clear_int_sample() {
-  for (size_t i = 0; i < PLOT_SAMPLE_SIZE; i++) {
-    plot_arr_int[i] = 0;
-  }
-}
-
-/*
- * Clears the plot_arr_float array.
-*/
-void clear_float_sample() {
-  for (size_t i = 0; i < PLOT_SAMPLE_SIZE; i++) {
-    plot_arr_float[i] = 0;
-  }
 }
 
 /*
