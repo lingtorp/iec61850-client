@@ -435,22 +435,22 @@ const string get_currrent_dateAndTime() {
   return buf;
 }
 
-long last_time = ts_start.tv_nsec;
 
 int get_measurement_sample(SVClientASDU asdu) {
   clock_gettime(CLOCK_MONOTONIC, &ts_curr);
   if(channel_advanced->dataType == SVValueType::FLOAT){
     Measurement<float> m;
     m.value = SVClientASDU_getFLOAT32(asdu, advanced_menu_opt*4);
-    m.timestamp = ts_curr.tv_nsec - last_time;
+    m.client_timestamp = ts_curr.tv_nsec - ts_start.tv_nsec;
+    m.server_timestamp = SVClientASDU_getINT32(asdu, advanced_menu_opt*4+4);
     measurements_float[measuring_samples_counter] = m;
   } else {
     Measurement<int> m;
     m.value = SVClientASDU_getINT32(asdu, advanced_menu_opt*4);
-    m.timestamp = ts_curr.tv_nsec - last_time;
+    m.client_timestamp = ts_curr.tv_nsec - ts_start.tv_nsec;
+    m.server_timestamp = SVClientASDU_getINT32(asdu, advanced_menu_opt*4+4);
     measurements_int[measuring_samples_counter] = m;
   }
-  last_time = ts_curr.tv_nsec;
   measuring_samples_counter++;
   return 0; // TODO: Check, what is this?
 }
