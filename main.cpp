@@ -470,12 +470,7 @@ void sv_update_listener(SVSubscriber subscriber, void* parameter, SVClientASDU a
     if (measuring_samples_counter >= MEASUREMENT_SAMPLE_SIZE){
       measuring_samples = false;
       measuring_samples_counter = 0;
-      FS::save_data(measurements,"tempFile");
-      for(size_t i = 0; i < MEASUREMENT_SAMPLE_SIZE; i++){
-        cout<<measurements[i].value;
-        cout<<" ";
-        cout<<measurements[i].timestamp<<endl;
-      }
+      FS::save_data(measurements,"tempFile.csv");
     } else get_measurement_sample(asdu);
   } else {
   int channelIndex = find_channel_by_name(svID);
