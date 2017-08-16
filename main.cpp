@@ -76,7 +76,7 @@ vector<sv_channel> channels;
 /** Global varible hols channel that is in advanced menu */
 sv_channel *channel_advanced;
 /** Global variable decides which value option will be choosen */
-int advanced_menu_opt = 0;
+uint32_t advanced_menu_opt = 0;
 /** Default interface name for Ubuntu running on VM VirtualBox */
 string interface = "lo";
 /** Global array holds float sv for plot */
@@ -429,7 +429,7 @@ long last_time = ts_start.tv_nsec;
 
 int get_measurement_sample(SVClientASDU asdu) {
   clock_gettime(CLOCK_MONOTONIC, &ts_curr);
-  if(channel_advanced->dataType == FLOAT_){
+  if(channel_advanced->dataType == SVValueType::FLOAT){
     Measurement<float> m;
     m.value = SVClientASDU_getFLOAT32(asdu, advanced_menu_opt*4);
     m.timestamp = ts_curr.tv_nsec - last_time;
@@ -455,7 +455,7 @@ void sv_update_listener(SVSubscriber subscriber, void* parameter, SVClientASDU a
     if (measuring_samples_counter >= MEASUREMENT_SAMPLE_SIZE){
       measuring_samples = false;
       measuring_samples_counter = 0;
-      if(channel_advanced->dataType == FLOAT_)
+      if(channel_advanced->dataType == SVValueType::FLOAT)
         FS::save_data(measurements_float,"tempFile.csv");
       else
         FS::save_data(measurements_int,"tempFile.csv");
