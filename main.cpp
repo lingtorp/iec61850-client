@@ -155,7 +155,6 @@ int main(int argc, char **argv) {
         if (advanced) {
           nk_layout_row_dynamic(ctx, 10, 1);
           nk_label(ctx, "---------- ADVANCED ----------", NK_TEXT_CENTERED);
-
           /* Choose between int and float datatype  */
           SVValueType op = channel_advanced->dataType;
           nk_layout_row_dynamic(ctx, 30, 12);
@@ -170,10 +169,10 @@ int main(int argc, char **argv) {
           /* Display each channel with its number and values */
           if (channel_advanced->dataType == SVValueType::FLOAT) {
             for (size_t j = 0; j < channel_advanced->float_values.size(); j++) {
-              nk_property_float(ctx, ("Value " + int_to_string(j + 1)).c_str(),
+              /*nk_property_float(ctx, ("Value " + int_to_string(j + 1)).c_str(),
                                 channel_advanced->float_values[j],
                                 &(channel_advanced->float_values[j]),
-                                channel_advanced->float_values[j], 10, 1);
+                                channel_advanced->float_values[j], 10, 1); */
             }
           } else {
             for (size_t j = 0; j < channel_advanced->int_values.size(); j++) {
@@ -183,7 +182,6 @@ int main(int argc, char **argv) {
                               channel_advanced->int_values[j], 10, 1);
             }
           }
-
           leave_empty_space(30);
 
           uint64_t opts_count;
@@ -210,7 +208,6 @@ int main(int argc, char **argv) {
               advanced_menu_opt = s;
           }
 
-
           /* Plot the graph */
           nk_layout_row_static(ctx, 200, 800, 1);
           if (channel_advanced->dataType == SVValueType::FLOAT) {
@@ -233,7 +230,6 @@ int main(int argc, char **argv) {
               nk_label(ctx, ("RMS Value:  " + float_to_string(rms_int())).c_str(),
                        NK_TEXT_LEFT);
           }
-
 
           /* Display back button */
           nk_layout_row_static(ctx, 30, 80, 1);
@@ -296,10 +292,11 @@ int main(int argc, char **argv) {
             if (channels[i].visible) {
               if (channels[i].dataType == SVValueType::FLOAT) {
                 for (size_t j = 0; j < channels[i].float_values.size(); j++) {
-                  nk_property_float(ctx, ("Value " + int_to_string(j + 1)).c_str(),
+                  //cout<<channels[i].float_values[j]<<endl;
+                  /*nk_property_float(ctx, ("Value " + int_to_string(j + 1)).c_str(),
                                     channels[i].float_values[j],
                                     &channels[i].float_values[j],
-                                    channels[i].float_values[j], 10, 1);
+                                    channels[i].float_values[j], 10, 1); */
                 }
               } else {
                 for (size_t j = 0; j < channels[i].int_values.size(); j++) {
@@ -429,13 +426,11 @@ int get_measurement_sample(SVClientASDU asdu) {
     Measurement<float> m;
     m.value = SVClientASDU_getFLOAT32(asdu, advanced_menu_opt*4);
     m.client_timestamp = ts_curr.tv_nsec - ts_start.tv_nsec;
-    m.server_timestamp = curr_ns += SVClientASDU_getINT32(asdu, advanced_menu_opt*4+4);
     measurements_float[measuring_samples_counter] = m;
   } else {
     Measurement<int> m;
     m.value = SVClientASDU_getINT32(asdu, advanced_menu_opt*4);
     m.client_timestamp = ts_curr.tv_nsec - ts_start.tv_nsec;
-    m.server_timestamp = curr_ns += SVClientASDU_getINT32(asdu, advanced_menu_opt*4+4);
     measurements_int[measuring_samples_counter] = m;
   }
   measuring_samples_counter++;
@@ -446,7 +441,6 @@ int get_measurement_sample(SVClientASDU asdu) {
  * Callback handler for received SV messages
 */
 void sv_update_listener(SVSubscriber subscriber, void* parameter, SVClientASDU asdu) {
-
   const char *svID = SVClientASDU_getSvId(asdu);
   if (measuring_samples && strcmp(channel_advanced->name, svID) == 0){
     if (measuring_samples_counter >= MEASUREMENT_SAMPLE_SIZE){
