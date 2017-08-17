@@ -169,10 +169,10 @@ int main(int argc, char **argv) {
           /* Display each channel with its number and values */
           if (channel_advanced->dataType == SVValueType::FLOAT) {
             for (size_t j = 0; j < channel_advanced->float_values.size(); j++) {
-              /*nk_property_float(ctx, ("Value " + int_to_string(j + 1)).c_str(),
+              nk_property_float(ctx, ("Value " + int_to_string(j + 1)).c_str(),
                                 channel_advanced->float_values[j],
                                 &(channel_advanced->float_values[j]),
-                                channel_advanced->float_values[j], 10, 1); */
+                                channel_advanced->float_values[j], 10, 1);
             }
           } else {
             for (size_t j = 0; j < channel_advanced->int_values.size(); j++) {
@@ -292,11 +292,10 @@ int main(int argc, char **argv) {
             if (channels[i].visible) {
               if (channels[i].dataType == SVValueType::FLOAT) {
                 for (size_t j = 0; j < channels[i].float_values.size(); j++) {
-                  //cout<<channels[i].float_values[j]<<endl;
-                  /*nk_property_float(ctx, ("Value " + int_to_string(j + 1)).c_str(),
+                  nk_property_float(ctx, ("Value " + int_to_string(j + 1)).c_str(),
                                     channels[i].float_values[j],
                                     &channels[i].float_values[j],
-                                    channels[i].float_values[j], 10, 1); */
+                                    channels[i].float_values[j], 10, 1);
                 }
               } else {
                 for (size_t j = 0; j < channels[i].int_values.size(); j++) {
