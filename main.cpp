@@ -429,7 +429,8 @@ int get_measurement_sample(SVClientASDU asdu) {
     measurements_float[measuring_samples_counter] = m;
   } else {
     Measurement<int> m;
-    m.value = SVClientASDU_getINT32(asdu, advanced_menu_opt*4);
+    curr_ns += SVClientASDU_getINT32(asdu, advanced_menu_opt*4);
+    m.value = curr_ns;
     m.client_timestamp = ts_curr.tv_nsec - ts_start.tv_nsec;
     measurements_int[measuring_samples_counter] = m;
   }
