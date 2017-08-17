@@ -102,7 +102,7 @@ struct timespec ts_start;
 /** Struct holds time of current sample */
 struct timespec ts_curr;
 /** Global varialbe holding time elapsed in ns from first value sent by server in measurments sampling */
-long curr_ns = 0;
+uint64_t curr_ns = 0;
 
 ////////////////////////////////
 //// Functions declaration ////
