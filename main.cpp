@@ -23,7 +23,7 @@
 #define MAX_ELEMENT_MEMORY 128 * 1024
 /** Size of plot sample */
 #define PLOT_SAMPLE_SIZE 100
-
+/** Size of measurement sample */
 #define MEASUREMENT_SAMPLE_SIZE 200
 
 
@@ -65,7 +65,6 @@ struct sv_channel {
 //////////////////////////////
 
 /** Main loop variable */
-// TODO: REDUCE THE NUMBER OF GLOBAL VARIABLES BY DECLARING SOME IN THE MAIN FUNTION
 bool running = true;
 /** Global variables for gui window */
 struct nk_color background;
@@ -94,7 +93,7 @@ bool plot_sampling = false;
 /** Vector holding float measurements collected */
 vector<Measurement<float> > measurements_float(MEASUREMENT_SAMPLE_SIZE);
 /** Vector holding int measurements collected */
-vector<Measurement<uint64_t> > measurements_int(MEASUREMENT_SAMPLE_SIZE);
+vector<Measurement<int64_t> > measurements_int(MEASUREMENT_SAMPLE_SIZE);
 /** Global variable decides if sampling values will be collected */
 bool measuring_samples = false;
 /** Global variable holds the position for measurments vector */
@@ -104,12 +103,12 @@ struct timespec ts_start;
 /** Struct holds time of current sample */
 struct timespec ts_curr;
 /** Global varialbe holding time elapsed in ns from first value sent by server in measurments sampling */
-uint64_t curr_ns = 0;
-
-uint64_t ns_elapsed = 0;
-
-uint64_t last_time = 0;
-
+int64_t curr_ns = 0;
+/** Global variable holding number of nano seconds elapsed form sampling start */
+int64_t ns_elapsed = 0;
+/** Global variable holding number of nano seconds on previous sample */
+int64_t last_time = 0;
+/** Global variable checks if nanoseconds have wrapped */
 bool wrap = false;
 
 ////////////////////////////////
@@ -341,7 +340,6 @@ int main(int argc, char **argv) {
 
     SDL_GL_SwapWindow(win);
   }
-
   return 0;
 }
 
@@ -434,7 +432,6 @@ int get_measurement_sample(SVClientASDU asdu) {
   clock_gettime(CLOCK_MONOTONIC, &ts_curr);
   if(last_time > ts_curr.tv_nsec) {
     wrap = true;
-    cout<<"wrap"<<endl;
   }
   uint64_t data_size = SVClientASDU_getDataSize(asdu);
   if(channel_advanced->dataType == SVValueType::FLOAT){
@@ -442,10 +439,12 @@ int get_measurement_sample(SVClientASDU asdu) {
     for(int  i = 0; i < data_size/4; i++) {
       m.values.push_back(SVClientASDU_getFLOAT32(asdu, advanced_menu_opt*4));
     }
+    /* If not wrapped just add difference between current timed and last_time  */
     if(!wrap){
       ns_elapsed += ts_curr.tv_nsec - last_time;
       m.client_timestamp = ns_elapsed;
     } else{
+      /* If wrapped add difference between last_time and max value and add current time */
       ns_elapsed += ts_curr.tv_nsec + 1000000000 - last_time;
       m.client_timestamp = ns_elapsed;
       wrap = false;
@@ -453,7 +452,7 @@ int get_measurement_sample(SVClientASDU asdu) {
     last_time = ts_curr.tv_nsec;
     measurements_float[measuring_samples_counter] = m;
   } else {
-    Measurement<uint64_t> m;
+    Measurement<int64_t> m;
     for(int  i = 0; i < data_size/4; i++) {
       curr_ns += SVClientASDU_getINT32(asdu, advanced_menu_opt*4);
       m.values.push_back(curr_ns);
