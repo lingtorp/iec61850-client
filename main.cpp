@@ -417,6 +417,9 @@ int find_channel_by_name(const char *name) {
 
 void sigint_handler(int signalId) { running = 0; }
 
+/*
+ * Return string representation of current date and time in form YYYY-MM-DD-time.
+*/
 const string get_currrent_dateAndTime() {
   time_t now = time(0);
   struct tm tstruct;
@@ -428,6 +431,9 @@ const string get_currrent_dateAndTime() {
 }
 
 
+/*
+ * Registers one measurment sample and give it timestamp.
+*/
 int get_measurement_sample(SVClientASDU asdu) {
   clock_gettime(CLOCK_MONOTONIC, &ts_curr);
   if(last_time > ts_curr.tv_nsec) {
