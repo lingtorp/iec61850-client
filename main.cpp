@@ -26,11 +26,13 @@
 
 #define MEASUREMENT_SAMPLE_SIZE 200
 
+#define MAX_VALUES_CHANNEL 16
+
 #include <signal.h>
 #include <stdio.h>
 #include "hal_thread.h"
 #include "sv_subscriber.h"
-#include "vector"
+#include <vector>
 #include <iostream>
 #include <string>
 #include <sstream>
@@ -40,6 +42,7 @@
 #include <ctime>
 #include <time.h>
 #include "filesystem.hpp"
+#include <limits>
 
 #ifdef __LINUX__
 #include <ifaddrs.h>
@@ -82,7 +85,7 @@ string interface = "lo";
 /** Global array holds float sv for plot */
 vector<float> plot_arr_float(PLOT_SAMPLE_SIZE);
 /** Global array holds int sv for plot */
-vector<float> plot_arr_int(PLOT_SAMPLE_SIZE);
+vector<int> plot_arr_int(PLOT_SAMPLE_SIZE);
 /** Global varialbe hold position for plot_arr input */
 uint64_t plot_count = 0;
 /** Global variable hold position for plot_arr read */
@@ -90,9 +93,9 @@ uint64_t read_ptr = 0;
 /** Global varialbe decides if plot values will be collected */
 bool plot_sampling = false;
 /** Vector holding float measurements collected */
-vector<Measurement<float>> measurements_float(MEASUREMENT_SAMPLE_SIZE);
+vector<Measurement<float> > measurements_float(MEASUREMENT_SAMPLE_SIZE);
 /** Vector holding int measurements collected */
-vector<Measurement<int>> measurements_int(MEASUREMENT_SAMPLE_SIZE);
+vector<Measurement<uint64_t> > measurements_int(MEASUREMENT_SAMPLE_SIZE);
 /** Global variable decides if sampling values will be collected */
 bool measuring_samples = false;
 /** Global variable holds the position for measurments vector */
@@ -103,6 +106,10 @@ struct timespec ts_start;
 struct timespec ts_curr;
 /** Global varialbe holding time elapsed in ns from first value sent by server in measurments sampling */
 uint64_t curr_ns = 0;
+
+uint64_t last_time = 0;
+
+bool wrap = false;
 
 ////////////////////////////////
 //// Functions declaration ////
@@ -419,18 +426,32 @@ const string get_currrent_dateAndTime() {
   return buf;
 }
 
+
 int get_measurement_sample(SVClientASDU asdu) {
   clock_gettime(CLOCK_MONOTONIC, &ts_curr);
+  if(last_time > ts_curr.tv_nsec) {
+    wrap = true;
+  }
+  uint64_t data_size = SVClientASDU_getDataSize(asdu);
   if(channel_advanced->dataType == SVValueType::FLOAT){
     Measurement<float> m;
-    m.value = SVClientASDU_getFLOAT32(asdu, advanced_menu_opt*4);
+    for(int  i = 0; i < data_size/4; i++) {
+      m.values.push_back(SVClientASDU_getFLOAT32(asdu, advanced_menu_opt*4));
+    }
     m.client_timestamp = ts_curr.tv_nsec - ts_start.tv_nsec;
     measurements_float[measuring_samples_counter] = m;
   } else {
-    Measurement<int> m;
-    curr_ns += SVClientASDU_getINT32(asdu, advanced_menu_opt*4);
-    m.value = curr_ns;
-    m.client_timestamp = ts_curr.tv_nsec - ts_start.tv_nsec;
+    Measurement<uint64_t> m;
+    for(int  i = 0; i < data_size/4; i++) {
+      curr_ns += SVClientASDU_getINT32(asdu, advanced_menu_opt*4);
+      m.values.push_back(curr_ns);
+    }
+    if(!wrap){
+        m.client_timestamp = ts_curr.tv_nsec - ts_start.tv_nsec;
+        last_time = ts_curr.tv_nsec;
+    } else {
+        m.client_timestamp = (last_time - ts_start.tv_nsec) + (numeric_limits<uint64_t>::max() - last_time + ts_curr.tv_nsec);
+    }
     measurements_int[measuring_samples_counter] = m;
   }
   measuring_samples_counter++;
