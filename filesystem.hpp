@@ -19,9 +19,13 @@ namespace FS {
   bool save_data(std::vector<Measurement<T>> &values, std::string file_path) {
     std::ofstream file(file_path);
     if (!file.good()) { return false; }
-    for (auto &value : values) {
-      file << value.client_timestamp << ";" << value.value << std::endl;
-    }
+      for(int i = 0; i < values.size(); i++){
+        file << values[i].client_timestamp << ";";
+        for(int j = 0; j < values[i].values.size();j++){
+          file << values[i].values[j] << ";";
+        }
+        file << std::endl;
+      }
     return true;
   }
 }
