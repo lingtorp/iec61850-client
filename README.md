@@ -7,13 +7,18 @@
 
 The program displays all the IEC61850 channels available of the chosen interface.
 New channels are automatically added and displayed. If one of channels stops broadcasting the last
-received value vill be shown. After clicking the refresh button only active channels will be shown.
+received value will be shown. After clicking the refresh button only active channels will be shown.
 
 ### Plotting
 
 In order to plot the values received mark the wanted channel and click the button "Advanced".
-Additional options as plotting and RMS vill be shown. Plot button have two options: "Start" and "Stop".
+Additional options as plotting and RMS will be shown. Plot button have two options: "Start" and "Stop".
 When plot is enabled graph will be updated continuously and RMS value will be calculated.
+
+### Sampling
+
+In advanced menu there is a "Sample" option. Sampling takes 200 values, adds a time stamp to them and write them to .csv file where
+first column represents time of arrival and second column value.
 
 ## Building
 ### Dependencies
@@ -38,5 +43,9 @@ by libiec61850.
 
 ### Performance concerns
 Given that the number of samples sent over the network quite easily can move into the thousands per seconds (50 hz * 256 samples/s = 12800 values/s) the performance of the program needs to be investigated. The normal build is unoptimized (add '-O3' to CXXFLAGS variable (line ~15) in the makefile for optimized builds).
+
+### Issues
+
+- All integer values in "Sample" mode are assumed to be time values and therefore summed to represent time elapsed from first value received.
 
 Tested on Ubuntu 17.04.
