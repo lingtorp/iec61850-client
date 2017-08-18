@@ -434,7 +434,7 @@ const string get_currrent_dateAndTime() {
 /*
  * Registers one measurment sample and give it timestamp.
 */
-int get_measurement_sample(SVClientASDU asdu) {
+void get_measurement_sample(SVClientASDU asdu) {
   clock_gettime(CLOCK_MONOTONIC, &ts_curr);
   if(last_time > ts_curr.tv_nsec) {
     wrap = true;
@@ -475,7 +475,6 @@ int get_measurement_sample(SVClientASDU asdu) {
     measurements_int[measuring_samples_counter] = m;
   }
   measuring_samples_counter++;
-  return 0; // TODO: Check, what is this?
 }
 
 /*
