@@ -26,7 +26,6 @@
 
 #define MEASUREMENT_SAMPLE_SIZE 200
 
-#define MAX_VALUES_CHANNEL 16
 
 #include <signal.h>
 #include <stdio.h>
@@ -106,6 +105,8 @@ struct timespec ts_start;
 struct timespec ts_curr;
 /** Global varialbe holding time elapsed in ns from first value sent by server in measurments sampling */
 uint64_t curr_ns = 0;
+
+uint64_t ns_elapsed = 0;
 
 uint64_t last_time = 0;
 
@@ -243,7 +244,9 @@ int main(int argc, char **argv) {
           if (nk_button_label(ctx,"SAMPLE")) {
             measuring_samples = true;
             curr_ns = 0;
+            ns_elapsed = 0;
             clock_gettime(CLOCK_MONOTONIC, &ts_start);
+            last_time = ts_start.tv_nsec;
           }
           leave_empty_space(30);
           nk_layout_row_static(ctx, 30, 80, 1);
@@ -431,6 +434,7 @@ int get_measurement_sample(SVClientASDU asdu) {
   clock_gettime(CLOCK_MONOTONIC, &ts_curr);
   if(last_time > ts_curr.tv_nsec) {
     wrap = true;
+    cout<<"wrap"<<endl;
   }
   uint64_t data_size = SVClientASDU_getDataSize(asdu);
   if(channel_advanced->dataType == SVValueType::FLOAT){
@@ -438,7 +442,15 @@ int get_measurement_sample(SVClientASDU asdu) {
     for(int  i = 0; i < data_size/4; i++) {
       m.values.push_back(SVClientASDU_getFLOAT32(asdu, advanced_menu_opt*4));
     }
-    m.client_timestamp = ts_curr.tv_nsec - ts_start.tv_nsec;
+    if(!wrap){
+      ns_elapsed += ts_curr.tv_nsec - last_time;
+      m.client_timestamp = ns_elapsed;
+    } else{
+      ns_elapsed += ts_curr.tv_nsec + 1000000000 - last_time;
+      m.client_timestamp = ns_elapsed;
+      wrap = false;
+    }
+    last_time = ts_curr.tv_nsec;
     measurements_float[measuring_samples_counter] = m;
   } else {
     Measurement<uint64_t> m;
@@ -447,11 +459,14 @@ int get_measurement_sample(SVClientASDU asdu) {
       m.values.push_back(curr_ns);
     }
     if(!wrap){
-        m.client_timestamp = ts_curr.tv_nsec - ts_start.tv_nsec;
-        last_time = ts_curr.tv_nsec;
+      ns_elapsed += ts_curr.tv_nsec - last_time;
+      m.client_timestamp = ns_elapsed;
     } else {
-        m.client_timestamp = (last_time - ts_start.tv_nsec) + (numeric_limits<uint64_t>::max() - last_time + ts_curr.tv_nsec);
+      ns_elapsed += ts_curr.tv_nsec + 1000000000 - last_time;
+      m.client_timestamp = ns_elapsed;
+      wrap = false;
     }
+    last_time = ts_curr.tv_nsec;
     measurements_int[measuring_samples_counter] = m;
   }
   measuring_samples_counter++;
