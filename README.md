@@ -4,6 +4,8 @@
 ![User interface #2](Images/advanced.png)
 
 ## How to use
+# Scripts
+Inside the repository folder there is a folder called 'scripts', inside there are a couple of scripts which will update and launch the applications.
 
 The program displays all the IEC61850 channels available of the chosen interface.
 New channels are automatically added and displayed. If one of channels stops broadcasting the last
